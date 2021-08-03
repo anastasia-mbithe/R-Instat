@@ -14,10 +14,14 @@
 ' You should have received a copy of the GNU General Public License 
 ' along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+Imports instat
 Imports instat.Translations
 Public Class dlgFindNonnumericValues
     Public bFirstLoad As Boolean = True
     Private bReset As Boolean = True
+    Private bUseSelectedColumn As Boolean = False
+    Private strSelectedColumn As String = ""
+    Private strSelectedDataFrame As String = ""
     Private clsIsNaFunction, clsIsNaNumericFunction, clsAsNumericFunction, clsSummaryFunction As New RFunction
     Private clsNonNumericCalcFunc, clsNonNumericFilterFunc, clsRunCalcFunction, clslSubCalcListFunc, clsGetColumnsFunction As New RFunction
     Private clsCurrRunCalc As RFunction
@@ -34,15 +38,18 @@ Public Class dlgFindNonnumericValues
         End If
         SetRCodeForControls(bReset)
         bReset = False
-        autoTranslate(Me)
         TestOKEnabled()
+        If bUseSelectedColumn Then
+            SetSelectedColumn()
+        End If
+        autoTranslate(Me)
     End Sub
 
     Private Sub InitialiseDialog()
         ucrBase.iHelpTopicID = 545
         ucrSelectorShowNonNumericValues.SetParameter(New RParameter("data_name", 0))
         ucrSelectorShowNonNumericValues.SetParameterIsString()
-       
+
         ucrReceiverColumn.Selector = ucrSelectorShowNonNumericValues
         ucrSelectorShowNonNumericValues.bUseCurrentFilter = False
 
@@ -52,8 +59,15 @@ Public Class dlgFindNonnumericValues
         ucrReceiverColumn.SetIncludedDataTypes({"character"})
         ucrReceiverColumn.strSelectorHeading = "characters"
 
-        ucrInputColumnName.SetParameter(New RParameter("result_name", 3))
-        ucrInputColumnName.SetDataFrameSelector(ucrSelectorShowNonNumericValues.ucrAvailableDataFrames)
+        'save control
+        ucrSaveColumn.SetPrefix("nonum")
+        ucrSaveColumn.SetSaveTypeAsColumn()
+        ucrSaveColumn.SetIsComboBox()
+        ucrSaveColumn.SetLabelText("Logical Column")
+        ucrSaveColumn.SetDataFrameSelector(ucrSelectorShowNonNumericValues.ucrAvailableDataFrames)
+        ucrSaveColumn.SetPositionParametersDirectly(False, "result_name")
+        'makes the ucrSave control to position new column after selected column
+        ucrSaveColumn.setLinkedReceiver(ucrReceiverColumn)
 
         ucrChkShowSummary.SetText("Display summary")
         ucrChkShowSummary.AddRSyntaxContainsFunctionNamesCondition(True, {"summary"})
@@ -78,6 +92,7 @@ Public Class dlgFindNonnumericValues
 
         ucrReceiverColumn.SetMeAsReceiver()
         ucrSelectorShowNonNumericValues.Reset()
+        ucrSaveColumn.Reset()
         ucrBase.clsRsyntax.ClearCodes()
 
         clsIsNaFunction.SetRCommand("is.na")
@@ -97,7 +112,6 @@ Public Class dlgFindNonnumericValues
         clsNonNumericCalcFunc.AddParameter("function_exp", clsROperatorParameter:=clsNotEqualToOperator, iPosition:=1)
         clsNonNumericCalcFunc.AddParameter("result_name", Chr(34) & strLogicalColumn & Chr(34), iPosition:=3)
         clsNonNumericCalcFunc.AddParameter("save", 2, iPosition:=4)
-        clsNonNumericCalcFunc.SetAssignTo("non_numerics_calculation")
 
         clsNonNumericFilterFunc.SetRCommand("instat_calculation$new")
         clsNonNumericFilterFunc.AddParameter("type", Chr(34) & "filter" & Chr(34), iPosition:=0)
@@ -127,22 +141,27 @@ Public Class dlgFindNonnumericValues
 
     Private Sub SetRCodeForControls(bReset As Boolean)
         ucrReceiverColumn.AddAdditionalCodeParameterPair(clsAsNumericFunction, New RParameter("x", 1), iAdditionalPairNo:=1)
-        ucrInputColumnName.AddAdditionalCodeParameterPair(clsGetColumnsFunction, New RParameter("col_names", 1), iAdditionalPairNo:=1)
-        ucrInputColumnName.AddAdditionalCodeParameterPair(clsNonNumericFilterFunc, New RParameter("function_exp", 1), iAdditionalPairNo:=2)
-
         ucrReceiverColumn.SetRCode(clsIsNaFunction, bReset)
-        ucrInputColumnName.SetRCode(clsNonNumericCalcFunc, bReset)
+        ucrSaveColumn.SetRCode(clsNonNumericCalcFunc, bReset)
         ucrChkShowSummary.SetRSyntax(ucrBase.clsRsyntax, bReset)
         ucrChkFilterNonumerics.SetRCode(clsCurrRunCalc, bReset)
         ucrSelectorShowNonNumericValues.SetRCode(clsGetColumnsFunction, bReset)
     End Sub
 
+    Public Sub SetCurrentColumn(strColumn As String, strDataFrame As String)
+        strSelectedColumn = strColumn
+        strSelectedDataFrame = strDataFrame
+        bUseSelectedColumn = True
+    End Sub
+
+    Private Sub SetSelectedColumn()
+        ucrSelectorShowNonNumericValues.SetDataframe(strSelectedDataFrame)
+        ucrReceiverColumn.Add(strSelectedColumn, strSelectedDataFrame)
+        bUseSelectedColumn = False
+    End Sub
+
     Private Sub TestOKEnabled()
-        If Not ucrReceiverColumn.IsEmpty AndAlso Not ucrInputColumnName.IsEmpty Then
-            ucrBase.OKEnabled(True)
-        Else
-            ucrBase.OKEnabled(False)
-        End If
+        ucrBase.OKEnabled(Not ucrReceiverColumn.IsEmpty AndAlso ucrSaveColumn.IsComplete)
     End Sub
 
     Private Sub ucrBase_ClickReset(sender As Object, e As EventArgs) Handles ucrBase.ClickReset
@@ -176,7 +195,15 @@ Public Class dlgFindNonnumericValues
         clsRunCalcFunction.AddParameter("calc", clsRFunctionParameter:=clsCurrRunCalc)
     End Sub
 
-    Private Sub ucrReceiverColumn_ControlContentsChanged(ucrChangedControl As ucrCore) Handles ucrReceiverColumn.ControlContentsChanged, ucrInputColumnName.ControlContentsChanged
+    Private Sub ucrReceiverColumn_ControlContentsChanged(ucrChangedControl As ucrCore) Handles ucrReceiverColumn.ControlContentsChanged, ucrSaveColumn.ControlContentsChanged
         TestOKEnabled()
     End Sub
+
+    Private Sub ucrSaveColumn_ControlValueChanged(ucrChangedControl As ucrCore) Handles ucrSaveColumn.ControlValueChanged
+        'change the parameter values
+        clsNonNumericCalcFunc.AddParameter(strParameterName:="result_name", strParameterValue:=Chr(34) & ucrSaveColumn.GetText & Chr(34), iPosition:=3)
+        clsNonNumericFilterFunc.AddParameter(strParameterName:="function_exp", strParameterValue:=Chr(34) & ucrSaveColumn.GetText & Chr(34), iPosition:=1)
+        clsGetColumnsFunction.AddParameter(strParameterName:="col_names", strParameterValue:=Chr(34) & ucrSaveColumn.GetText & Chr(34), iPosition:=1)
+    End Sub
+
 End Class

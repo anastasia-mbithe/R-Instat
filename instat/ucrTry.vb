@@ -25,6 +25,7 @@ Public Class ucrTry
     Private WithEvents ucrReceiverScript As ucrReceiverExpression
     Private clsRSyntax As RSyntax
     Private bstrVecOutput As Boolean
+    Private arrAssociatedControls As ucrCore()
 
     Public Sub New()
         ' This call is required by the designer.
@@ -37,7 +38,7 @@ Public Class ucrTry
         bstrVecOutput = False
     End Sub
 
-    Public Sub SetReceiver(ucrNewReceiverScript As ucrReceiverExpression)
+    Public Sub SetReceiver(Optional ucrNewReceiverScript As ucrReceiverExpression = Nothing)
         ucrReceiverScript = ucrNewReceiverScript
     End Sub
 
@@ -94,7 +95,9 @@ Public Class ucrTry
 
         Try
             setToCommandOrModel()
-            If ucrReceiverScript.IsEmpty Then
+            If Not IsNothing(ucrReceiverScript) AndAlso ucrReceiverScript.IsEmpty() Then
+                ucrInputTryMessage.SetName("")
+            ElseIf IsNothing(ucrReceiverScript) AndAlso CheckForEmptyInputControl Then
                 ucrInputTryMessage.SetName("")
             Else
                 For Each clsTempCode In clsRSyntax.lstBeforeCodes
@@ -206,7 +209,7 @@ Public Class ucrTry
                                                                                        frmPopUp.Close()
                                                                                    End Sub
                                          AddHandler txtPopUpErrorDetail.KeyDown, Sub(sender As Object, e As KeyEventArgs)
-                                                                                     If e.Control AndAlso e.KeyCode = Keys.KeyCode.Enter Then
+                                                                                     If e.Control AndAlso e.KeyCode = Keys.Enter Then
                                                                                          frmPopUp.Close()
                                                                                      End If
                                                                                  End Sub
@@ -220,7 +223,46 @@ Public Class ucrTry
                                      End Sub
     End Sub
 
+    Public Sub AssociatedControls(lstOfAssociatedControls As ucrCore())
+        arrAssociatedControls = lstOfAssociatedControls
+        For Each corecontrol In lstOfAssociatedControls
+            If Not IsNothing(TryCast(corecontrol, ucrInputComboBox)) Then
+                AddHandler TryCast(corecontrol, ucrInputComboBox).SelectionIndexChanged, AddressOf TextSelectionChanged
+            ElseIf Not IsNothing(TryCast(corecontrol, ucrReceiverSingle)) Then
+                AddHandler TryCast(corecontrol, ucrReceiverSingle).SelectionChanged, AddressOf TextSelectionChanged
+            End If
+        Next
+    End Sub
+
+    Private Function CheckForEmptyInputControl() As Boolean
+        If Not IsNothing(arrAssociatedControls) Then
+            For Each ucrControl As ucrCore In arrAssociatedControls
+                If Not IsNothing(TryCast(ucrControl, ucrReceiverSingle)) Then
+                    If TryCast(ucrControl, ucrReceiverSingle).IsEmpty Then
+                        Return True
+                        Exit For
+                    End If
+                End If
+            Next
+            Return False
+        Else
+            Return False
+        End If
+    End Function
+
+    Private Sub TextSelectionChanged()
+        ResetInputTryMessage()
+    End Sub
+
     Private Sub ucrReceiverScript_SelectionChanged(sender As Object, e As EventArgs) Handles ucrReceiverScript.SelectionChanged
+        ResetInputTryMessage()
+    End Sub
+
+    '''--------------------------------------------------------------------------------------------
+    ''' <summary> Clears the ucrInputTryMessage textbox and sets its colour to white incase the 
+    ''' ucrReceiverScript selection changes on the value for the ucrModelPreview changes    </summary>
+    '''--------------------------------------------------------------------------------------------
+    Public Sub ResetInputTryMessage()
         ucrInputTryMessage.SetName("")
         ucrInputTryMessage.txtInput.BackColor = Color.White
         ucrInputTryMessage.txtInput.Controls.Clear()

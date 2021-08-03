@@ -15,6 +15,7 @@
 ' along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Imports instat
+Imports instat.Translations
 
 Public Class ucrVariablesAsFactor
     Public bSingleVariable As Boolean
@@ -130,7 +131,7 @@ Public Class ucrVariablesAsFactor
         'The associated factor receiver will then be set to StackedFactorMode, which makes it disabled with fixed content "variables". This is done in SetMeasureVars() below.
         If bSingleVariable Then
             'need to translate correctly
-            cmdVariables.Text = "Single Variable"
+            cmdVariables.Text = GetTranslation("Single Variable")
             cmdVariables.FlatStyle = FlatStyle.Popup
             ucrSingleVariable.Visible = True
             ucrMultipleVariables.Visible = False
@@ -149,7 +150,7 @@ Public Class ucrVariablesAsFactor
             ucrSingleVariable.Visible = False
             ucrMultipleVariables.Visible = True
             'TODO need to translate correctly
-            cmdVariables.Text = "Multiple Variables"
+            cmdVariables.Text = GetTranslation("Multiple Variables")
             cmdVariables.FlatStyle = FlatStyle.Flat
             If ucrVariableSelector IsNot Nothing Then
                 ucrVariableSelector.ucrAvailableDataFrames.clsCurrDataFrame.AddParameter("stack_data", "TRUE")
@@ -295,9 +296,24 @@ Public Class ucrVariablesAsFactor
             Return MyBase.Selector
         End Get
         Set(ucrNewSelector As ucrSelector)
+            'This line automatically adds ucrVariablesAsFactor (Me) as the receiver of ucrNewSelector. 
+            'This is undesirable because ucrVariablesAsFactor is a receiver that has two receivers 
+            '(its child controls) which it uses to manipulate data. 
             MyBase.Selector = ucrNewSelector
+            'Therefore remove ucrVariablesAsFactor (Me) and leave only it's child controls in the 
+            'list of receivers used for autoswitching.
+            ' 
+            'TODO Currently the selector only uses the list of receivers to manipulate the focus 
+            'switching. In future the usage of the receivers could change which may require this 
+            'implementation to be changed 
+            If MyBase.Selector IsNot Nothing Then
+                MyBase.Selector.RemoveReceiver(Me)
+            End If
+
+            'set the selector to the children receivers. This by default adds the receivers to the selector
             ucrSingleVariable.Selector = ucrNewSelector
             ucrMultipleVariables.Selector = ucrNewSelector
+
             If ucrNewSelector IsNot Nothing Then
                 ucrVariableSelector = TryCast(ucrNewSelector, ucrSelectorByDataFrame)
                 If ucrVariableSelector Is Nothing Then

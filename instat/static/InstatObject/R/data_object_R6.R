@@ -493,7 +493,7 @@ DataSheet$set("public", "get_calculation_names", function(as_list = FALSE, exclu
 }
 )
 
-DataSheet$set("public", "add_columns_to_data", function(col_name = "", col_data, use_col_name_as_prefix = FALSE, hidden = FALSE, before = FALSE, adjacent_column, num_cols, require_correct_length = TRUE) {
+DataSheet$set("public", "add_columns_to_data", function(col_name = "", col_data, use_col_name_as_prefix = FALSE, hidden = FALSE, before, adjacent_column = "", num_cols, require_correct_length = TRUE, keep_existing_position = TRUE) {
   # Column name must be character
   if(!is.character(col_name)) stop("Column name must be of type: character")
   if(missing(num_cols)) {
@@ -529,19 +529,10 @@ DataSheet$set("public", "add_columns_to_data", function(col_name = "", col_data,
     use_col_name_as_prefix = TRUE
   }
   
-  replaced = FALSE
+  replaced <- FALSE
   previous_length = self$get_column_count()
-  if(!missing(adjacent_column) && !adjacent_column %in% self$get_column_names()) stop(adjacent_column, "not found in the data")
-  
-  if(before) {
-    if(!missing(adjacent_column)) ind = which(self$get_column_names() == adjacent_column)
-    else ind = 1
-  }
-  else {
-    if(!missing(adjacent_column)) ind = which(self$get_column_names() == adjacent_column) + 1
-    else ind = previous_length + 1
-  }
-  
+  if(adjacent_column != "" && !adjacent_column %in% self$get_column_names()) stop(adjacent_column, "not found in the data")
+ 
   new_col_names <- c()
   for(i in 1:num_cols) {
     if(num_cols == 1) {
@@ -560,20 +551,35 @@ DataSheet$set("public", "add_columns_to_data", function(col_name = "", col_data,
     if(curr_col_name %in% self$get_column_names()) {
       message(paste("A column named", curr_col_name, "already exists. The column will be replaced in the data"))
       self$append_to_changes(list(Replaced_col, curr_col_name))
-      replaced = TRUE
+      replaced <- TRUE
     }
     else self$append_to_changes(list(Added_col, curr_col_name))
     private$data[[curr_col_name]] <- curr_col
     self$data_changed <- TRUE
   }
   self$add_defaults_variables_metadata(new_col_names)
-  if(!replaced) {
-    if(before && ind == 1) self$set_data(dplyr::select(self$get_data_frame(use_current_filter = FALSE) , c((previous_length + 1):(previous_length + num_cols), 1:previous_length)))
-    else if(before || ind != previous_length + 1) self$set_data(dplyr::select(self$get_data_frame(use_current_filter = FALSE) , c(1:(ind - 1), (previous_length + 1):(previous_length + num_cols), ind:previous_length)))
+  
+  # If replacing existing columns and not repositioning them, or before and adjacent_column column positioning parameters are missing
+  # then do not reposition.
+  if((replaced && keep_existing_position) || (missing(before) && adjacent_column == "")) return()
+
+  # Get the adjacent position to be used in appending the new column names
+  if(before) {
+    if(adjacent_column == "") adjacent_position <- 0
+    else adjacent_position <- which(self$get_column_names() == adjacent_column) - 1
+  } else {
+      if(adjacent_column == "") adjacent_position <- self$get_column_count()
+      else adjacent_position <- which(self$get_column_names() == adjacent_column)
   }
-  else {
-    if(!missing(before) || !missing(adjacent_column)) warning("Cannot reposition when one or move new columns replaces an old column.")
-  }
+
+  # Replace existing names with empty placeholders. Maintains the indices
+  temp_all_col_names <- replace(self$get_column_names(), self$get_column_names() %in% new_col_names, "")
+  # Append the newly added column names after the set position
+  new_col_names_order <- append(temp_all_col_names, new_col_names, adjacent_position)
+  # Remove all empty characters placeholders to get final reordered column names
+  new_col_names_order <- new_col_names_order[! new_col_names_order == ""]
+  # Only do reordering if the column names order differ
+  if(!all(self$get_column_names() == new_col_names_order)) self$reorder_columns_in_data(col_order=new_col_names_order)
 }
 )
 
@@ -843,6 +849,62 @@ DataSheet$set("public", "replace_value_in_data", function(col_names, rows, old_v
   self$variables_metadata_changed <- TRUE
 }
 )
+
+DataSheet$set("public", "paste_from_clipboard", function(col_names, start_row_pos = 1, first_clip_row_is_header = FALSE, clip_board_text) {
+  #reads data from clipboard and saves it to selected columns
+  #get the clipboard text contents as a data frame
+  clip_tbl <- clipr::read_clip_tbl(x = clip_board_text, header = first_clip_row_is_header)
+  current_tbl <- self$get_data_frame(use_current_filter = FALSE)
+  
+  #check if number of copied columns and selected columns are equal
+  if(ncol(clip_tbl) != length(col_names)){
+    stop(paste("number of columns are not the same.",
+               "Selected columns:", length(col_names), ". Copied columns:", ncol(clip_tbl)) )
+  }
+  
+  #check if copied data rows are more than current data rows
+  if( nrow(clip_tbl) > nrow(current_tbl) ){
+    stop(paste("rows copied cannot be more than number of rows in the data frame.",
+               "Current data frame rows:", nrow(current_tbl), ". Copied rows:", nrow(clip_tbl)) )
+  }
+  
+  #check copied data integrity
+  for(index in seq_along(col_names)){
+    col_data <- current_tbl[, col_names[index]]
+    #get column type of column from the current table using column name
+    col_type <- class(col_data)
+    #check copied data integrity based on the data type expected
+    if (is.factor(col_data)) {
+      #get all the factor levels of the selected column in the current data frame
+      expected_factor_levels <- levels(col_data)
+      #check if all copied data values are contained in the factor levels
+      #if any invalid is found. exit function
+      for(val in clip_tbl[,index]){
+        if(!is.na(val) && !is.element(val,expected_factor_levels)){
+          stop("Invalid column values. Level not found in factor")
+        }
+      }#end inner for loop
+    } else if( !(is.numeric(col_data) || is.logical(col_data) || is.character(col_data)) ) {
+      #clipr support above column types only. So pasting to a column not recognised by clipr may result to unpredictible results 
+      #if not in any of above column types then exit function
+      stop( paste("Cannot paste into columns of type:", col_type) )
+    }#end if  
+  }#end outer for loop
+  
+  #replace values in the selected columns
+  for(index in seq_along(col_names)){
+    #set the row positions and the values
+    rows_to_replace <- c(start_row_pos : (start_row_pos + nrow(clip_tbl) - 1 ))
+    new_values <- clip_tbl[,index]
+    #replace the old values with new values
+    self$replace_value_in_data(col_names = col_names[index], rows = rows_to_replace, new_value = new_values)
+    #rename header if first row of clip data is header. 
+    if(first_clip_row_is_header){
+      self$rename_column_in_data(curr_col_name = col_names[index], new_col_name = colnames(clip_tbl)[index]) 
+    }
+  }#end for loop
+}
+)#end function
 
 DataSheet$set("public", "append_to_metadata", function(property, new_value = "") {
   if(missing(property)) stop("property must be specified.")
@@ -1139,7 +1201,7 @@ DataSheet$set("public", "convert_column_to_type", function(col_names = c(), to_t
   }
   
   if(!is.null(factor_values) && !(factor_values %in% c("force_ordinals", "force_values"))) {
-    stop(factor_values, " can either be by_levels or by_ordinals.")
+    stop(factor_values, " must be either 'force_ordinals' or 'force_values'")
   }
   
   for(col_name in col_names) {
@@ -1150,22 +1212,25 @@ DataSheet$set("public", "convert_column_to_type", function(col_names = c(), to_t
     if(!is.null(factor_values) && is.factor(curr_col) && to_type %in% c("integer", "numeric")) {
       if(factor_values == "force_ordinals") new_col <- as.numeric(curr_col)
       else if(factor_values == "force_values") new_col <- as.numeric(levels(curr_col))[curr_col]
-      else stop("If specified, 'factor_values' must be either 'force_ordinals' or 'force_values'")
     }
     else if(to_type %in% c("factor", "ordered_factor")) {
-      make_ordered <- (to_type == "ordered_factor")
+      ordered <- (to_type == "ordered_factor")
+      # TODO This looks like it may not work if curr_col is not numeric.
+      # If this is not currently used anywhere possibly remove or modify.
       if(set_decimals) curr_col <- round(curr_col, digits = set_digits)
       if(ignore_labels) {
-        new_col <- factor(curr_col, ordered = make_ordered)
+        new_col <- make_factor(curr_col, ordered = ordered)
       }
       else {
         if(self$is_variables_metadata(labels_label, col_name)) {
           new_col <- sjlabelled::as_label(curr_col, add.non.labelled = TRUE)
-          #TODO work out how to do ordered correctly
-		  #if(make_ordered) new_col <- ordered(new_col)
+          # Adds "ordered" to the class in the same way as factor().
+          # factor(ordered = TURE) is not used as this drops all attributes of x.
+          if(ordered) class(new_col) <- c("ordered", class(new_col))
+          else class(new_col) <- class(new_col)[class(new_col) != "ordered"]
         }
         else {
-          new_col <- factor(curr_col, ordered = make_ordered)
+          new_col <- make_factor(curr_col, ordered = ordered)
           if(is.numeric(curr_col) && !self$is_variables_metadata(labels_label, col_name)) {
             labs <- sort(unique(curr_col))
             names(labs) <- labs
@@ -1175,12 +1240,13 @@ DataSheet$set("public", "convert_column_to_type", function(col_names = c(), to_t
         }
       }
     }
-    else if(to_type =="integer") {
-      new_col = as.integer(curr_col)
+    else if(to_type == "integer") {
+      new_col <- as.integer(curr_col)
     }
     else if(to_type == "numeric") {
       if(ignore_labels) {
-        new_col <- as.numeric(curr_col)
+        if (is.factor(curr_col)) new_col <- as.numeric(levels(curr_col))[curr_col]
+        else new_col <- as.numeric(curr_col)
       }
       else {
         if(self$is_variables_metadata(labels_label, col_name) && !is.numeric(curr_col)) {
@@ -1381,33 +1447,37 @@ DataSheet$set("public", "get_data_type", function(col_name = "") {
   if(!(col_name %in% self$get_column_names())) {
     stop(paste(col_name, "is not a column in", self$get_metadata(data_name_label)))
   }
-  type = ""
-  curr_col <- self$get_columns_from_data(col_name, use_current_filter = FALSE)
+  type <- ""
+  curr_col <- self$get_columns_from_data(col_name, use_current_filter = TRUE)
   if(is.character(curr_col)) {
     type = "character"
   }
-  else if(is.logical(private$data[[col_name]])) {
+  else if(is.logical(curr_col)) {
     type = "logical"
   }
+  # Question: Why is the using private$data[[col_name]] instead of curr_col?
   else if(lubridate::is.Date(private$data[[col_name]])){
     # #TODO
     #we can add options for other forms of dates serch as POSIXct, POSIXlt, Date, chron, yearmon, yearqtr, zoo, zooreg, timeDate, xts, its, ti, jul, timeSeries, and fts objects.
     type = "Date"
   }
-  else if(is.numeric(private$data[[col_name]])) {
+  else if(is.numeric(curr_col)) {
     #TODO vectors with integer values but stored as numeric will return numeric.
     #     Is that desirable?
-    if(is.integer(private$data[[col_name]])) {
-      if(all(private$data[[col_name]]>0)) {
-        type = "positive integer"
+      if(is.binary(curr_col)) {
+        type = "two level numeric"
       }
-      else type = "integer"
-    }
-    else type = "numeric"
+      else if(all(curr_col == as.integer(curr_col), na.rm = TRUE)) {
+        if(all(curr_col > 0, na.rm = TRUE)) {
+          type = "positive integer"
+        }
+        else type = "integer"
+      }
+      else type = "numeric"
   }
   else if(is.factor(curr_col)) {
-    if(length(levels(curr_col))==2) type = "two level factor"
-    else if(length(levels(curr_col))>2) type = "multilevel factor"
+    if(nlevels(curr_col) == 2 || nlevels(factor(curr_col)) == 2) type = "two level factor"
+    else if(length(levels(curr_col)) > 2) type = "multilevel factor"
     else type = "factor"
   }
   return(type)
@@ -1468,7 +1538,7 @@ DataSheet$set("public", "set_protected_columns", function(col_names) {
 }
 )
 
-DataSheet$set("public", "add_filter", function(filter, filter_name = "", replace = TRUE, set_as_current = FALSE, na.rm = TRUE, is_no_filter = FALSE) {
+DataSheet$set("public", "add_filter", function(filter, filter_name = "", replace = TRUE, set_as_current = FALSE, na.rm = TRUE, is_no_filter = FALSE, and_or = "&", inner_not = FALSE, outer_not = FALSE) {
   if(missing(filter)) stop("filter is required")
   if(filter_name == "") filter_name = next_default_item("Filter", names(private$filters))
   
@@ -1483,7 +1553,7 @@ DataSheet$set("public", "add_filter", function(filter, filter_name = "", replace
   }
   else {
     if(filter_name %in% names(private$filters)) message("A filter named ", filter_name, " already exists. It will be replaced by the new filter.")
-    filter_calc = calculation$new(type = "filter", filter_conditions = filter, name = filter_name, parameters = list(na.rm = na.rm, is_no_filter = is_no_filter))
+    filter_calc = calculation$new(type = "filter", filter_conditions = filter, name = filter_name, parameters = list(na.rm = na.rm, is_no_filter = is_no_filter, and_or = and_or, inner_not = inner_not, outer_not = outer_not))
     private$filters[[filter_name]] <- filter_calc
     self$append_to_changes(list(Added_filter, filter_name))
     if(set_as_current) {
@@ -1493,6 +1563,13 @@ DataSheet$set("public", "add_filter", function(filter, filter_name = "", replace
   }
 }
 )
+
+DataSheet$set("public","add_filter_as_levels", function(filter_levels, column){
+  for (i in seq_along(filter_levels)) {
+    filter_cond <- list(C0 = list(column = column, operation = "==", value = filter_levels[i]))
+    self$add_filter(filter = filter_cond, filter_name = filter_levels[i])
+  }
+})
 
 DataSheet$set("public", "get_current_filter", function() {
   return(private$.current_filter)
@@ -1530,32 +1607,65 @@ DataSheet$set("public", "get_filter", function(filter_name) {
 
 DataSheet$set("public", "get_filter_as_logical", function(filter_name) {
   curr_filter <- self$get_filter(filter_name)
-  i = 1
-  if(length(curr_filter$filter_conditions) ==  0) out <- rep(TRUE, nrow(self$get_data_frame(use_current_filter = FALSE)))
-  else {
-    result = matrix(nrow = nrow(self$get_data_frame(use_current_filter = FALSE)), ncol = length(curr_filter$filter_conditions))
-    for(condition in curr_filter$filter_conditions) {
-      # Prevents crash if column no longer exists
-      # TODO still shows filter is applied
-      if(!condition[["column"]] %in% self$get_column_names()) return(TRUE)
-      if(condition[["operation"]] == "is.na" || condition[["operation"]] == "! is.na") {
-        col_is_na <- is.na(self$get_columns_from_data(condition[["column"]], use_current_filter = FALSE))
-        if(condition[["operation"]] == "is.na") result[ ,i] <- col_is_na
-        else result[ ,i] <- !col_is_na
+  i <- 1
+  if (!curr_filter$parameters[["outer_not"]]) {
+    if (length(curr_filter$filter_conditions) == 0) {
+      out <- rep(TRUE, nrow(self$get_data_frame(use_current_filter = FALSE)))
+    } else {
+      result <- matrix(nrow = nrow(self$get_data_frame(use_current_filter = FALSE)), ncol = length(curr_filter$filter_conditions))
+      for (condition in curr_filter$filter_conditions) {
+        # Prevents crash if column no longer exists
+        # TODO still shows filter is applied
+        if (!condition[["column"]] %in% self$get_column_names()) {
+          return(TRUE)
+        }
+        if (condition[["operation"]] == "is.na" || condition[["operation"]] == "! is.na") {
+          col_is_na <- is.na(self$get_columns_from_data(condition[["column"]], use_current_filter = FALSE))
+          if (condition[["operation"]] == "is.na") {
+            result[, i] <- col_is_na
+          } else {
+            result[, i] <- !col_is_na
+          }
+        }
+        else {
+          func <- match.fun(condition[["operation"]])
+          if (any(is.na(condition[["value"]])) && condition[["operation"]] != "%in%") {
+            stop("Cannot create a filter on missing values with operation: ", condition[["operation"]])
+          } else {
+            logical_vec <- func(self$get_columns_from_data(condition[["column"]], use_current_filter = FALSE), condition[["value"]])
+          }
+          if (!curr_filter$parameters[["inner_not"]]) {
+            result[, i] <- logical_vec
+          } else {
+            result[, i] <- !logical_vec
+          }
+        }
+        i <- i + 1
       }
-      else {
-        func <- match.fun(condition[["operation"]])
-        if(any(is.na(condition[["value"]])) && condition[["operation"]] != "%in%") stop("Cannot create a filter on missing values with operation: ", condition[["operation"]])
-        else result[ ,i] <- func(self$get_columns_from_data(condition[["column"]], use_current_filter = FALSE), condition[["value"]])
+      and_or <- curr_filter$parameters[["and_or"]]
+      if (is.null(and_or)) and_or <- "&"
+      if (and_or == "&") {
+        out <- apply(result, 1, all)
+      } else if (and_or == "|") {
+        out <- apply(result, 1, any)
+      } else {
+        stop(and_or, " should be & or |.")
       }
-      i = i + 1
+      out[is.na(out)] <- !curr_filter$parameters[["na.rm"]]
     }
-    out <- apply(result, 1, all)
-    out[is.na(out)] <- !curr_filter$parameters[["na.rm"]]
+  } else {
+    dat <- self$get_data_frame(use_current_filter = FALSE)
+    str_out <- "("
+    for (condition in curr_filter$filter_conditions) {
+      str_out <- paste0(str_out, paste0("dat", "$", condition[["column"]], condition[["operation"]], ifelse(is.numeric(condition[["value"]]), condition[["value"]], paste0("'", condition[["value"]], "'"))))
+      if (i != length(curr_filter$filter_conditions)) str_out <- paste0(str_out, curr_filter$parameters[["and_or"]])
+      i <- i + 1
+    }
+    str_out <- paste0("!", str_out, ")")
+    out <- eval(parse(text = str_out))
   }
   return(out)
-}
-)
+})
 
 DataSheet$set("public", "get_filter_column_names", function(filter_name) {
   curr_filter <- self$get_filter(filter_name)
@@ -1585,22 +1695,28 @@ DataSheet$set("public", "remove_current_filter", function() {
 )
 
 DataSheet$set("public", "filter_string", function(filter_name) {
-  if(!filter_name %in% names(private$filters)) stop(filter_name, " not found.")
+  if (!filter_name %in% names(private$filters)) stop(filter_name, " not found.")
   curr_filter <- self$get_filter(filter_name)
-  out = "("
-  i = 1
-  for(condition in curr_filter$filter_conditions) {
-    if(i != 1) out = paste(out, "&")
-    out = paste0(out, " (", condition[["column"]], " ", condition[["operation"]])
-    if(condition[["operation"]] == "%in%") out = paste0(out, " c(", paste(paste0("'", condition[["value"]], "'"), collapse = ","), ")")
-    else out = paste(out, condition[["value"]])
-    out = paste0(out , ")")
-    i = i + 1
+  out <- "("
+  i <- 1
+  for (condition in curr_filter$filter_conditions) {
+    if (i != 1) out <- paste(out, curr_filter$parameters[["and_or"]])
+    out <- ifelse(!curr_filter$parameters[["inner_not"]], paste0(out, " (", condition[["column"]], " ", condition[["operation"]]), paste0(out, " !(", condition[["column"]], " ", condition[["operation"]]))
+    if (condition[["operation"]] == "%in%") {
+      out <- paste0(out, " c(", paste(paste0("'", condition[["value"]], "'"), collapse = ","), ")")
+    } else {
+      out <- paste(out, condition[["value"]])
+    }
+    out <- paste0(out, ")")
+    i <- i + 1
   }
-  out = paste(out, ")")
+  out <- paste(out, ")")
+  if (curr_filter$parameters[["outer_not"]]) {
+    out <- gsub("[!()]", "", out)
+    out <- paste0("!(", out, ")")
+  }
   return(out)
-}
-)
+})
 
 DataSheet$set("public", "get_filter_as_instat_calculation", function(filter_name) {
   if(!filter_name %in% names(private$filters)) stop(filter_name, " not found.")
@@ -1637,18 +1753,21 @@ DataSheet$set("public", "add_object", function(object, object_name) {
   if(object_name %in% names(private$objects)) message("An object called ", object_name, " already exists. It will be replaced.")
   private$objects[[object_name]] <- object
   self$append_to_changes(list(Added_object, object_name))
-  if(any(c("ggplot", "gg", "gtable", "grob", "ggmultiplot", "ggsurv", "ggsurvplot") %in% class(object))) {
+  if(any(c("ggplot", "gg", "gtable", "grob", "ggmultiplot", "ggsurv", "ggsurvplot", "openair", "recordedplot") %in% class(object))) {
     private$.last_graph <- object_name
   }
 }
 )
 
-DataSheet$set("public", "get_objects", function(object_name, type = "", force_as_list = FALSE) {
+DataSheet$set("public", "get_objects", function(object_name, type = "", force_as_list = FALSE, silent = FALSE) {
   curr_objects = private$objects[self$get_object_names(type = type)]
   if(length(curr_objects) == 0) return(curr_objects)
   if(missing(object_name)) return(curr_objects)
   if(!is.character(object_name)) stop("object_name must be a character")
-  if(!all(object_name %in% names(curr_objects))) stop(object_name, " not found in objects")
+  if(!all(object_name %in% names(curr_objects))) {
+    if (silent) return(NULL)
+    else stop(object_name, " not found in objects")
+  }
   if(length(object_name) == 1) {
     if(force_as_list) return(curr_objects[object_name])
     else return(curr_objects[[object_name]])
@@ -1661,7 +1780,7 @@ DataSheet$set("public", "get_object_names", function(type = "", as_list = FALSE,
   if(type == "") out = names(private$objects)
   else {
     if(type == model_label) out = names(private$objects)[!sapply(private$objects, function(x) any(c("ggplot", "gg", "gtable", "grob", "ggmultiplot", "ggsurv", "ggsurvplot", "htmlTable", "Surv") %in% class(x)))]
-    else if(type == graph_label) out = names(private$objects)[sapply(private$objects, function(x) any(c("ggplot", "gg", "gtable", "grob", "ggmultiplot", "ggsurv", "ggsurvplot") %in% class(x)))]
+    else if(type == graph_label) out = names(private$objects)[sapply(private$objects, function(x) any(c("ggplot", "gg", "gtable", "grob", "ggmultiplot", "ggsurv", "ggsurvplot", "openair", "recordedplot") %in% class(x)))]
     else if(type == surv_label) out = names(private$objects)[sapply(private$objects, function(x) any(c("Surv") %in% class(x)))]
     else if(type == table_label) out = names(private$objects)[sapply(private$objects, function(x) any(c("htmlTable", "data.frame", "list") %in% class(x)))]
     else stop("type: ", type, " not recognised")
@@ -1693,7 +1812,7 @@ DataSheet$set("public", "get_last_graph", function() {
 )
 
 DataSheet$set("public", "rename_object", function(object_name, new_name, object_type = "object") {
-  if(!object_type %in% c("object", "filter", "calculation", "graph", "table","model")) stop(object_type, " must be either object (graph, table or model), filter or a calculation")
+  if(!object_type %in% c("object", "filter", "calculation", "graph", "table","model")) stop(object_type, " must be either object (graph, table or model), filter or a calculation.")
   #Temp fix:: added graph, table and model so as to distinguish this when implementing it in the dialog. Otherwise they remain as objects
   if (object_type %in% c("object", "graph", "table","model")){
     if(!object_name %in% names(private$objects)) stop(object_name, " not found in objects list")
@@ -1703,6 +1822,7 @@ DataSheet$set("public", "rename_object", function(object_name, new_name, object_
   else if (object_type == "filter"){
     if(!object_name %in% names(private$filters)) stop(object_name, " not found in filters list")
     if(new_name %in% names(private$filters)) stop(new_name, " is already a filter name. Cannot rename ", object_name, " to ", new_name)
+    if("no_filter" == object_name) stop("Renaming no_filter is not allowed.")
     names(private$filters)[names(private$filters) == object_name] <- new_name
     if(private$.current_filter$name == object_name){private$.current_filter$name <- new_name}
   } 
@@ -1710,6 +1830,26 @@ DataSheet$set("public", "rename_object", function(object_name, new_name, object_
     if(!object_name %in% names(private$calculations)) stop(object_name, " not found in calculations list")
     if(new_name %in% names(private$calculations)) stop(new_name, " is already a calculation name. Cannot rename ", object_name, " to ", new_name)
     names(private$calculations)[names(private$calculations) == object_name] <- new_name
+  }
+}
+)
+
+DataSheet$set("public", "delete_objects", function(data_name, object_names, object_type = "object") {
+  if(!object_type %in% c("object", "graph", "table","model","filter", "calculation")) stop(object_type, " must be either object (graph, table or model), filter or a calculation.")
+  if(any(object_type == c("object", "graph", "table","model"))){
+      if(!all(object_names %in% names(private$objects))) stop("Not all object_names found in overall objects list.")
+      private$objects[names(private$objects) %in% object_names] <- NULL
+    }else if(object_type == "filter"){
+      if(!all(object_names %in% names(private$filters))) stop(object_names, " not found in filters list.")
+      if("no_filter" %in% object_names) stop("no_filter cannot be deleted.")
+      if(any(private$.current_filter$name %in% object_names))stop(private$.current_filter$name, " is currently in use and cannot be deleted.")
+      private$filters[names(private$filters) %in% object_names] <- NULL
+    }else if(object_type == "calculation"){
+      if(!object_names %in% names(private$calculations)) stop(object_names, " not found in calculations list.")
+      private$calculations[names(private$calculations) %in% object_names] <- NULL
+    }
+  if(!is.null(private$.last_graph) && length(private$.last_graph) == 2 && private$.last_graph[1] == data_name && private$.last_graph[2] %in% object_names) {
+    private$.last_graph <- NULL
   }
 }
 )
@@ -1772,12 +1912,15 @@ DataSheet$set("public", "add_key", function(col_names, key_name) {
   }
   else {
     if(missing(key_name)) key_name <- next_default_item("key", names(private$keys))
-    if(key_name %in% names(private$keys)) warning("A key called ", key_name, " already exists. It wil be replaced.")
+    if(key_name %in% names(private$keys)) warning("A key called", key_name, "already exists. It will be replaced.")
     private$keys[[key_name]] <- col_names
     self$append_to_variables_metadata(col_names, is_key_label, TRUE)
     if(length(private$keys) == 1) self$append_to_variables_metadata(setdiff(self$get_column_names(), col_names), is_key_label, FALSE)
     self$append_to_metadata(is_linkable, TRUE)
     self$append_to_metadata(next_default_item(key_label, names(self$get_metadata())), paste(col_names, collapse = ","))
+    cat(paste("Key name:", key_name),
+        paste("Key columns:", paste(private$keys[[key_name]], collapse = ", ")),
+        sep = "\n")
   }
 }
 )
@@ -1795,8 +1938,10 @@ DataSheet$set("public", "has_key", function() {
 DataSheet$set("public", "get_keys", function(key_name) {
   if(!missing(key_name)) {
     if(!key_name %in% names(private$keys)) stop(key_name, " not found.")
-    return(private$keys[[key_name]])
-  }
+    cat(paste("Key name:", key_name),
+        paste("Key columns:", paste(private$keys[[key_name]], collapse = ", ")),
+        sep = "\n")
+      }
   else return(private$keys)
 }
 )
@@ -1804,6 +1949,7 @@ DataSheet$set("public", "get_keys", function(key_name) {
 DataSheet$set("public", "remove_key", function(key_name) {
   if(!key_name %in% names(private$keys)) stop(key_name, " not found.")
   private$keys[[key_name]] <- NULL
+  cat("Key removed:", key_name)
 }
 )
 
@@ -1876,7 +2022,7 @@ DataSheet$set("public", "set_column_colours_by_metadata", function(columns, prop
   if(missing(columns)) property_values <- self$get_variables_metadata(property = property)
   else property_values <- self$get_variables_metadata(property = property, column = columns)
   
-  new_colours <- as.numeric(as.factor(property_values))
+  new_colours <- as.numeric(make_factor(property_values))
   new_colours[is.na(new_colours)] <- -1
   if(missing(columns)) self$set_column_colours(colours = new_colours)
   else self$set_column_colours(columns = columns, colours = new_colours)
@@ -2021,7 +2167,7 @@ DataSheet$set("public", "graph_one_variable", function(columns, numeric = "geom_
       i = i + 1
     }
     if(output == "combine") {
-      return(gridExtra::grid.arrange(grobs = graphs, ncol = ncol))
+      return(patchwork::wrap_plots(graphs, ncol = ncol))
     }
     else {
       return(graphs)
@@ -2112,8 +2258,8 @@ DataSheet$set("public","set_contrasts_of_factor", function(col_name, new_contras
 #This method gets a date column and extracts part of the information such as year, month, week, weekday etc(depending on which parameters are set) and creates their respective new column(s)
 DataSheet$set("public","split_date", function(col_name = "", year_val = FALSE, year_name = FALSE, leap_year = FALSE,  month_val = FALSE, month_abbr = FALSE, month_name = FALSE, week_val = FALSE, week_abbr = FALSE, week_name = FALSE,  weekday_val = FALSE, weekday_abbr = FALSE, weekday_name = FALSE,  day = FALSE, day_in_month = FALSE, day_in_year = FALSE, day_in_year_366 = FALSE, pentad_val = FALSE, pentad_abbr = FALSE,  dekad_val = FALSE, dekad_abbr = FALSE, quarter_val = FALSE, quarter_abbr = FALSE, with_year = FALSE, s_start_month = 1, s_start_day_in_month = 1, days_in_month = FALSE) {
   col_data <- self$get_columns_from_data(col_name, use_current_filter = FALSE)
+  adjacent_column <- col_name
   if(!lubridate::is.Date(col_data)) stop("This column must be a date or time!")
-  
   s_shift <- s_start_day_in_month > 1 || s_start_month > 1
   is_climatic <- self$is_climatic_data()
   
@@ -2131,7 +2277,7 @@ DataSheet$set("public","split_date", function(col_name = "", year_val = FALSE, y
     temp_s_year <- year_col
     temp_s_year[temp_s_doy < 1] <- paste(year_col[temp_s_doy < 1] - 1, year_col[temp_s_doy < 1], sep = "-")
     temp_s_year[temp_s_doy > 0] <- paste(year_col[temp_s_doy > 0], year_col[temp_s_doy > 0] + 1, sep = "-")
-    temp_s_year <- factor(temp_s_year)
+    temp_s_year <- make_factor(temp_s_year)
     temp_s_year_num <- as.numeric(substr(temp_s_year, 1, 4))
     temp_s_doy[temp_s_doy < 1] <- temp_s_doy[temp_s_doy < 1] + 366
     s_year_labs <- c(min(year_col) -1, sort(unique(year_col)))
@@ -2139,15 +2285,148 @@ DataSheet$set("public","split_date", function(col_name = "", year_val = FALSE, y
   }
   else s_start_day <- 1
 
-  if(leap_year) {
-    leap_year_vector <- lubridate::leap_year(col_data)
-    col_name <- next_default_item(prefix = "leap_year", existing_names = self$get_column_names(), include_index = FALSE)
-    self$add_columns_to_data(col_name = col_name, col_data = leap_year_vector)
+  if(weekday_name) {
+    weekday_name_vector <- lubridate::wday(col_data, label = TRUE, abbr = FALSE)
+    col_name <- next_default_item(prefix = "weekday_name", existing_names = self$get_column_names(), include_index = FALSE)
+    self$add_columns_to_data(col_name = col_name, col_data = weekday_name_vector, adjacent_column = adjacent_column, before = FALSE)
+  }
+  if(weekday_abbr) {
+    weekday_abbr_vector <- lubridate::wday(col_data, label = TRUE)
+    col_name <- next_default_item(prefix = "weekday_abbr", existing_names = self$get_column_names(), include_index = FALSE)
+    self$add_columns_to_data(col_name = col_name, col_data = weekday_abbr_vector, adjacent_column = adjacent_column, before = FALSE)
+  }
+  if(weekday_val) {
+    weekday_val_vector <- lubridate::wday(col_data)
+    col_name <- next_default_item(prefix = "weekday_val", existing_names = self$get_column_names(), include_index = FALSE)
+    self$add_columns_to_data(col_name = col_name, col_data = weekday_val_vector, adjacent_column = adjacent_column, before = FALSE)
+  }
+  if(week_val) {
+    week_Val_vector <- lubridate::week(col_data)
+    col_name <- next_default_item(prefix = "week_val", existing_names = self$get_column_names(), include_index = FALSE)
+    self$add_columns_to_data(col_name = col_name, col_data = week_Val_vector, adjacent_column = adjacent_column, before = FALSE)
+  }
+  if(pentad_abbr) {
+    month_abbr_vector <-forcats::fct_shift(f = (lubridate::month(col_data, label = TRUE)), n = (s_start_month - 1))
+    pentad_val_vector <- ((as.integer(pentad(col_data))) - (s_start_month - 1)*6) %% 6
+    pentad_val_vector <- ifelse(pentad_val_vector == 0, 6, pentad_val_vector)
+    month.list <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    month_levels <- if (s_start_month == 1) month.list else c(tail(month.list, -s_start_month + 1), head(month.list, s_start_month - 1))
+    pentad_levels <- paste0(rep(month_levels, each = 6), 1:6)
+    pentad_abbr_vector <- factor(paste(month_abbr_vector, pentad_val_vector, sep = ""), levels = pentad_levels)
+    col_name <- next_default_item(prefix = "pentad_abbr", existing_names = self$get_column_names(), include_index = FALSE)
+    self$add_columns_to_data(col_name = col_name, col_data = pentad_abbr_vector, adjacent_column = adjacent_column, before = FALSE)
+  }
+  if(pentad_val) {
+    pentad_val_vector <- ((as.integer(pentad(col_data))) - (s_start_month - 1)*6) %% 72
+    pentad_val_vector <- ifelse(pentad_val_vector == 0, 72, pentad_val_vector)
+    col_name <- next_default_item(prefix = "pentad", existing_names = self$get_column_names(), include_index = FALSE)
+    self$add_columns_to_data(col_name = col_name, col_data = pentad_val_vector, adjacent_column = adjacent_column, before = FALSE)
+  }
+  if(dekad_abbr) {
+    month_abbr_vector <- make_factor(forcats::fct_shift(f = (lubridate::month(col_data, label = TRUE)), n = (s_start_month - 1)), ordered = FALSE)
+    dekad_val_vector <- ((as.numeric(dekade(col_data))) - (s_start_month - 1)*3) %% 3
+    dekad_val_vector <- ifelse(dekad_val_vector == 0, 3, dekad_val_vector)
+    month.list <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    month_levels <- if (s_start_month == 1) month.list else c(tail(month.list, -s_start_month + 1), head(month.list, s_start_month - 1))
+    dekad_levels <- paste0(rep(month_levels, each = 3), 1:3)
+    dekad_abbr_vector <- factor(paste(month_abbr_vector, dekad_val_vector, sep = ""), levels = dekad_levels)
+    col_name <- next_default_item(prefix = "dekad_abbr", existing_names = self$get_column_names(), include_index = FALSE)
+    self$add_columns_to_data(col_name = col_name, col_data = dekad_abbr_vector, adjacent_column = adjacent_column, before = FALSE)
+  }
+  if(dekad_val) {
+    # TODO. shift function when s_start_month > 1
+    dekad_val_vector <- ((as.numeric(dekade(col_data))) - (s_start_month - 1)*3) %% 36
+    dekad_val_vector <- ifelse(dekad_val_vector == 0, 36, dekad_val_vector)
+    col_name <- next_default_item(prefix = "dekad", existing_names = self$get_column_names(), include_index = FALSE)
+    self$add_columns_to_data(col_name = col_name, col_data = dekad_val_vector, adjacent_column = adjacent_column, before = FALSE)
+  }
+  if(quarter_val) {
+    if(s_shift) {
+      s_quarter_val_vector <- lubridate::quarter(col_data, with_year = with_year, fiscal_start = s_start_month)
+      col_name <- next_default_item(prefix = "s_quarter", existing_names = self$get_column_names(), include_index = FALSE)
+      self$add_columns_to_data(col_name = col_name, col_data = s_quarter_val_vector, adjacent_column = adjacent_column, before = FALSE)
+      self$append_to_variables_metadata(col_names = col_name, property = label_label, new_val = paste("Shifted quarter starting on day", s_start_day))
+    } 
+    else {
+      quarter_val_vector <- lubridate::quarter(col_data, with_year = with_year)
+      col_name <- next_default_item(prefix = "quarter", existing_names = self$get_column_names(), include_index = FALSE)
+      self$add_columns_to_data(col_name = col_name, col_data = quarter_val_vector, adjacent_column = adjacent_column, before = FALSE)
+    }
+    self$append_to_variables_metadata(col_names = col_name, property = doy_start_label, new_val = s_start_day)
+  }
+  if(day_in_year) {
+    day_in_year_vector <- lubridate::yday(col_data) - s_start_day + 1 + (!lubridate::leap_year(col_data) & s_start_day > 59)
+    day_in_year_vector <- dplyr::if_else(lubridate::leap_year(col_data), day_in_year_vector %% 366, day_in_year_vector %% 365)
+    day_in_year_vector <- dplyr::if_else(day_in_year_vector == 0, dplyr::if_else(lubridate::leap_year(col_data), 366, 365), day_in_year_vector)
+    col_name <- next_default_item(prefix = "doy_365", existing_names = self$get_column_names(), include_index = FALSE)
+    self$add_columns_to_data(col_name = col_name, col_data = day_in_year_vector, adjacent_column = adjacent_column, before = FALSE)
+    self$append_to_variables_metadata(col_names = col_name, property = doy_start_label, new_val = s_start_day)
+    if(s_shift) self$append_to_variables_metadata(col_names = col_name, property = label_label, new_val = paste("Shifted year starting on day", s_start_day))
+  }
+  if(day_in_year_366) {
+    if(s_shift) {
+      col_name <- next_default_item(prefix = "s_doy", existing_names = self$get_column_names(), include_index = FALSE)
+      self$add_columns_to_data(col_name = col_name, col_data = temp_s_doy, adjacent_column = adjacent_column, before = FALSE)
+      self$append_to_variables_metadata(col_names = col_name, property = label_label, new_val = paste("Shifted day of year starting on day", s_start_day))
+    }
+    else {
+      day_in_year_366_vector <- as.integer(yday_366(col_data))
+      col_name <- next_default_item(prefix = "doy", existing_names = self$get_column_names(), include_index = FALSE)
+      self$add_columns_to_data(col_name = col_name, col_data = day_in_year_366_vector, adjacent_column = adjacent_column, before = FALSE)
+    }
+    if(is_climatic && is.null(self$get_climatic_column_name(doy_label))) {
+      self$append_climatic_types(types = c(doy = col_name))
+    }
+    self$append_to_variables_metadata(col_names = col_name, property = doy_start_label, new_val = s_start_day)
+  }
+  if(days_in_month) {
+    days_in_month_vector <- as.numeric(lubridate::days_in_month(col_data))
+    col_name <- next_default_item(prefix = "days_in_month", existing_names = self$get_column_names(), include_index = FALSE)
+    self$add_columns_to_data(col_name = col_name, col_data = days_in_month_vector, adjacent_column = adjacent_column, before = FALSE)
+  }
+  if(day_in_month) {
+    day_in_month_vector <- as.numeric(lubridate::mday(col_data))
+    col_name <- next_default_item(prefix = "day_in_month", existing_names = self$get_column_names(), include_index = FALSE)
+    self$add_columns_to_data(col_name = col_name, col_data = day_in_month_vector, adjacent_column = adjacent_column, before = FALSE)
+    if(is_climatic && is.null(self$get_climatic_column_name(day_label))) {
+      self$append_climatic_types(types = c(day = col_name))
+    }
+  }
+  if(month_val) {
+    month_val_vector <- (lubridate::month(col_data) - (s_start_month - 1)) %% 12
+    month_val_vector <- ifelse(month_val_vector == 0, 12, month_val_vector)
+    col_name <- next_default_item(prefix = "month_val", existing_names = self$get_column_names(), include_index = FALSE)
+    self$add_columns_to_data(col_name = col_name, col_data = month_val_vector, adjacent_column = adjacent_column, before = FALSE)
+    if(s_shift) self$append_to_variables_metadata(col_names = col_name, property = label_label, new_val = paste("Shifted month starting on day", s_start_day))
+    if(is_climatic && is.null(self$get_climatic_column_name(month_label))) {
+      self$append_climatic_types(types = c(month = col_name))
+    }
+    self$append_to_variables_metadata(col_names = col_name, property = doy_start_label, new_val = s_start_day)
+  }
+  if(month_abbr) {
+    month_abbr_vector <- make_factor(forcats::fct_shift(f = lubridate::month(col_data, label = TRUE), n = s_start_month - 1), ordered = FALSE)
+    col_name <- next_default_item(prefix = "month_abbr", existing_names = self$get_column_names(), include_index = FALSE)
+    self$add_columns_to_data(col_name = col_name, col_data = month_abbr_vector, adjacent_column = adjacent_column, before = FALSE)
+    if(s_shift) self$append_to_variables_metadata(col_names = col_name, property = label_label, new_val = paste("Shifted month starting on day", s_start_day))
+    if(is_climatic && is.null(self$get_climatic_column_name(month_label))) {
+      self$append_climatic_types(types = c(month = col_name))
+    }
+    self$append_to_variables_metadata(col_names = col_name, property = doy_start_label, new_val = s_start_day)
+  }
+  if(month_name) { 
+    month_name_vector <- forcats::fct_shift(f = lubridate::month(col_data, label = TRUE, abbr = FALSE), n = s_start_month - 1)
+    col_name <- next_default_item(prefix = "month_name", existing_names = self$get_column_names(), include_index = FALSE)
+    self$add_columns_to_data(col_name = col_name, col_data = month_name_vector, adjacent_column = adjacent_column, before = FALSE)
+    if(s_shift) self$append_to_variables_metadata(col_names = col_name, property = label_label, new_val = paste("Shifted month starting on day", s_start_day))
+    if(is_climatic && is.null(self$get_climatic_column_name(month_label))) {
+      self$append_climatic_types(types = c(month = col_name))
+    }
+    self$append_to_variables_metadata(col_names = col_name, property = doy_start_label, new_val = s_start_day)
   }
   if(year_name) {
     if(s_shift) {
       col_name <- next_default_item(prefix = "s_year", existing_names = self$get_column_names(), include_index = FALSE)
-      self$add_columns_to_data(col_name = col_name, col_data = temp_s_year)
+      self$add_columns_to_data(col_name = col_name, col_data = temp_s_year, adjacent_column = adjacent_column, before = FALSE)
       self$append_to_variables_metadata(col_names = col_name, property = label_label, new_val = paste("Shifted year starting on day", s_start_day))
       new_labels <- sort(unique(temp_s_year_num))
       names(new_labels) <- sort(unique(temp_s_year))
@@ -2156,7 +2435,7 @@ DataSheet$set("public","split_date", function(col_name = "", year_val = FALSE, y
     else {
       year_vector <- lubridate::year(col_data)
       col_name <- next_default_item(prefix = "year", existing_names = self$get_column_names(), include_index = FALSE)
-      self$add_columns_to_data(col_name = col_name, col_data = factor(year_vector))
+      self$add_columns_to_data(col_name = col_name, col_data = make_factor(year_vector), adjacent_column = adjacent_column, before = FALSE)
     }
     if(is_climatic && is.null(self$get_climatic_column_name(year_label))) {
       self$append_climatic_types(types = c(year = col_name))
@@ -2166,160 +2445,26 @@ DataSheet$set("public","split_date", function(col_name = "", year_val = FALSE, y
   if(year_val) {
     if(s_shift) {
       col_name <- next_default_item(prefix = "s_year", existing_names = self$get_column_names(), include_index = FALSE)
-      self$add_columns_to_data(col_name = col_name, col_data = temp_s_year_num)
+      self$add_columns_to_data(col_name = col_name, col_data = temp_s_year_num, adjacent_column = adjacent_column, before = FALSE)
       self$append_to_variables_metadata(col_names = col_name, property = label_label, new_val = paste("Shifted year starting on day", s_start_day))
     }
     else {
       year_vector <- lubridate::year(col_data)
       col_name <- next_default_item(prefix = "year", existing_names = self$get_column_names(), include_index = FALSE)
-      self$add_columns_to_data(col_name = col_name, col_data = year_vector)
+      self$add_columns_to_data(col_name = col_name, col_data = year_vector, adjacent_column = adjacent_column, before = FALSE)
     }
     if(is_climatic && is.null(self$get_climatic_column_name(year_label))) {
       self$append_climatic_types(types = c(year = col_name))
     }
     self$append_to_variables_metadata(col_names = col_name, property = doy_start_label, new_val = s_start_day)
   }
-  if(month_name) { 
-    month_name_vector <- forcats::fct_shift(f = lubridate::month(col_data, label = TRUE, abbr = FALSE), n = s_start_month - 1)
-    col_name <- next_default_item(prefix = "month_name", existing_names = self$get_column_names(), include_index = FALSE)
-    self$add_columns_to_data(col_name = col_name, col_data = month_name_vector)
-    if(s_shift) self$append_to_variables_metadata(col_names = col_name, property = label_label, new_val = paste("Shifted month starting on day", s_start_day))
-    if(is_climatic && is.null(self$get_climatic_column_name(month_label))) {
-      self$append_climatic_types(types = c(month = col_name))
-    }
-    self$append_to_variables_metadata(col_names = col_name, property = doy_start_label, new_val = s_start_day)
-  }
-  if(month_abbr) {
-    month_abbr_vector <- factor(forcats::fct_shift(f = lubridate::month(col_data, label = TRUE), n = s_start_month - 1), ordered = FALSE)
-    col_name <- next_default_item(prefix = "month_abbr", existing_names = self$get_column_names(), include_index = FALSE)
-    self$add_columns_to_data(col_name = col_name, col_data = month_abbr_vector)
-    if(s_shift) self$append_to_variables_metadata(col_names = col_name, property = label_label, new_val = paste("Shifted month starting on day", s_start_day))
-    if(is_climatic && is.null(self$get_climatic_column_name(month_label))) {
-      self$append_climatic_types(types = c(month = col_name))
-    }
-    self$append_to_variables_metadata(col_names = col_name, property = doy_start_label, new_val = s_start_day)
-  }
-  if(month_val) {
-    month_val_vector <- (lubridate::month(col_data) - (s_start_month - 1)) %% 12
-    month_val_vector <- ifelse(month_val_vector == 0, 12, month_val_vector)
-    col_name <- next_default_item(prefix = "month_val", existing_names = self$get_column_names(), include_index = FALSE)
-    self$add_columns_to_data(col_name = col_name, col_data = month_val_vector)
-    if(s_shift) self$append_to_variables_metadata(col_names = col_name, property = label_label, new_val = paste("Shifted month starting on day", s_start_day))
-    if(is_climatic && is.null(self$get_climatic_column_name(month_label))) {
-      self$append_climatic_types(types = c(month = col_name))
-    }
-    self$append_to_variables_metadata(col_names = col_name, property = doy_start_label, new_val = s_start_day)
-  }
-  if(day_in_month) {
-    day_in_month_vector <- as.numeric(lubridate::mday(col_data))
-    col_name <- next_default_item(prefix = "day_in_month", existing_names = self$get_column_names(), include_index = FALSE)
-    self$add_columns_to_data(col_name = col_name, col_data = day_in_month_vector)
-    if(is_climatic && is.null(self$get_climatic_column_name(day_label))) {
-      self$append_climatic_types(types = c(day = col_name))
-    }
-  }
-  if(days_in_month) {
-    days_in_month_vector <- as.numeric(lubridate::days_in_month(col_data))
-    col_name <- next_default_item(prefix = "days_in_month", existing_names = self$get_column_names(), include_index = FALSE)
-    self$add_columns_to_data(col_name = col_name, col_data = days_in_month_vector)
-  }
-  if(day_in_year_366) {
-    if(s_shift) {
-      col_name <- next_default_item(prefix = "s_doy", existing_names = self$get_column_names(), include_index = FALSE)
-      self$add_columns_to_data(col_name = col_name, col_data = temp_s_doy)
-      self$append_to_variables_metadata(col_names = col_name, property = label_label, new_val = paste("Shifted day of year starting on day", s_start_day))
-    }
-    else {
-      day_in_year_366_vector <- as.integer(yday_366(col_data))
-      col_name <- next_default_item(prefix = "doy", existing_names = self$get_column_names(), include_index = FALSE)
-      self$add_columns_to_data(col_name = col_name, col_data = day_in_year_366_vector)
-    }
-    if(is_climatic && is.null(self$get_climatic_column_name(doy_label))) {
-      self$append_climatic_types(types = c(doy = col_name))
-    }
-    self$append_to_variables_metadata(col_names = col_name, property = doy_start_label, new_val = s_start_day)
-  }
-  if(day_in_year) {
-    day_in_year_vector <- lubridate::yday(col_data) - s_start_day + 1 + (!lubridate::leap_year(col_data) & s_start_day > 59)
-    day_in_year_vector <- dplyr::if_else(lubridate::leap_year(col_data), day_in_year_vector %% 366, day_in_year_vector %% 365)
-	  day_in_year_vector <- dplyr::if_else(day_in_year_vector == 0, dplyr::if_else(lubridate::leap_year(col_data), 366, 365), day_in_year_vector)
-    col_name <- next_default_item(prefix = "doy_365", existing_names = self$get_column_names(), include_index = FALSE)
-    self$add_columns_to_data(col_name = col_name, col_data = day_in_year_vector)
-    self$append_to_variables_metadata(col_names = col_name, property = doy_start_label, new_val = s_start_day)
-    if(s_shift) self$append_to_variables_metadata(col_names = col_name, property = label_label, new_val = paste("Shifted year starting on day", s_start_day))
-  }
-  if(quarter_val) {
-    if(s_shift) {
-      s_quarter_val_vector <- lubridate::quarter(col_data, with_year = with_year, fiscal_start = s_start_month)
-      col_name <- next_default_item(prefix = "s_quarter", existing_names = self$get_column_names(), include_index = FALSE)
-      self$add_columns_to_data(col_name = col_name, col_data = s_quarter_val_vector)
-      self$append_to_variables_metadata(col_names = col_name, property = label_label, new_val = paste("Shifted quarter starting on day", s_start_day))
-    } 
-    else {
-      quarter_val_vector <- lubridate::quarter(col_data, with_year = with_year)
-      col_name <- next_default_item(prefix = "quarter", existing_names = self$get_column_names(), include_index = FALSE)
-      self$add_columns_to_data(col_name = col_name, col_data = quarter_val_vector)
-    }
-    self$append_to_variables_metadata(col_names = col_name, property = doy_start_label, new_val = s_start_day)
-  }
-  if(dekad_val) {
-    # TODO. shift function when s_start_month > 1
-	  dekad_val_vector <- ((as.numeric(dekade(col_data))) - (s_start_month - 1)*3) %% 36
-	  dekad_val_vector <- ifelse(dekad_val_vector == 0, 36, dekad_val_vector)
-    col_name <- next_default_item(prefix = "dekad", existing_names = self$get_column_names(), include_index = FALSE)
-    self$add_columns_to_data(col_name = col_name, col_data = dekad_val_vector)
-  }
-  if(dekad_abbr) {
-    month_abbr_vector <- factor(forcats::fct_shift(f = (lubridate::month(col_data, label = TRUE)), n = (s_start_month - 1)), ordered = FALSE)
-	  dekad_val_vector <- ((as.numeric(dekade(col_data))) - (s_start_month - 1)*3) %% 3
-	  dekad_val_vector <- ifelse(dekad_val_vector == 0, 3, dekad_val_vector)
-	  month.list <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-	  month_levels <- if (s_start_month == 1) month.list else c(tail(month.list, -s_start_month + 1), head(month.list, s_start_month - 1))
-	  dekad_levels <- paste0(rep(month_levels, each = 3), 1:3)
-	  dekad_abbr_vector <- factor(paste(month_abbr_vector, dekad_val_vector, sep = ""), levels = dekad_levels)
-	  col_name <- next_default_item(prefix = "dekad_abbr", existing_names = self$get_column_names(), include_index = FALSE)
-    self$add_columns_to_data(col_name = col_name, col_data = dekad_abbr_vector)
-  }
-  if(pentad_val) {
-  	pentad_val_vector <- ((as.integer(pentad(col_data))) - (s_start_month - 1)*6) %% 72
-	  pentad_val_vector <- ifelse(pentad_val_vector == 0, 72, pentad_val_vector)
-    col_name <- next_default_item(prefix = "pentad", existing_names = self$get_column_names(), include_index = FALSE)
-    self$add_columns_to_data(col_name = col_name, col_data = pentad_val_vector)
-  }
-  if(pentad_abbr) {
-	  month_abbr_vector <-forcats::fct_shift(f = (lubridate::month(col_data, label = TRUE)), n = (s_start_month - 1))
-	  pentad_val_vector <- ((as.integer(pentad(col_data))) - (s_start_month - 1)*6) %% 6
-	  pentad_val_vector <- ifelse(pentad_val_vector == 0, 6, pentad_val_vector)
-	  month.list <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-	  month_levels <- if (s_start_month == 1) month.list else c(tail(month.list, -s_start_month + 1), head(month.list, s_start_month - 1))
-	  pentad_levels <- paste0(rep(month_levels, each = 6), 1:6)
-	  pentad_abbr_vector <- factor(paste(month_abbr_vector, pentad_val_vector, sep = ""), levels = pentad_levels)
-	  col_name <- next_default_item(prefix = "pentad_abbr", existing_names = self$get_column_names(), include_index = FALSE)
-    self$add_columns_to_data(col_name = col_name, col_data = pentad_abbr_vector)
-  }
-  if(week_val) {
-    week_Val_vector <- lubridate::week(col_data)
-	  col_name <- next_default_item(prefix = "week_val", existing_names = self$get_column_names(), include_index = FALSE)
-    self$add_columns_to_data(col_name = col_name, col_data = week_Val_vector)
-  }
-  if(weekday_val) {
-    weekday_val_vector <- lubridate::wday(col_data)
-	  col_name <- next_default_item(prefix = "weekday_val", existing_names = self$get_column_names(), include_index = FALSE)
-    self$add_columns_to_data(col_name = col_name, col_data = weekday_val_vector)
-  }
-  if(weekday_abbr) {
-    weekday_abbr_vector <- lubridate::wday(col_data, label = TRUE)
-	  col_name <- next_default_item(prefix = "weekday_abbr", existing_names = self$get_column_names(), include_index = FALSE)
-    self$add_columns_to_data(col_name = col_name, col_data = weekday_abbr_vector)
-  }
-  if(weekday_name) {
-    weekday_name_vector <- lubridate::wday(col_data, label = TRUE, abbr = FALSE)
-	  col_name <- next_default_item(prefix = "weekday_name", existing_names = self$get_column_names(), include_index = FALSE)
-    self$add_columns_to_data(col_name = col_name, col_data = weekday_name_vector)
+  if(leap_year) {
+    leap_year_vector <- lubridate::leap_year(col_data)
+    col_name <- next_default_item(prefix = "leap_year", existing_names = self$get_column_names(), include_index = FALSE)
+    self$add_columns_to_data(col_name = col_name, col_data = leap_year_vector, adjacent_column = adjacent_column, before = FALSE)
   }
  }
 )
-
 
 #TODO These should go in a separate climatic file
 #************************************************
@@ -2366,10 +2511,17 @@ cloud_cover_label="cloud_cover"
 all_climatic_column_types <- c(rain_label, rain_day_label, rain_day_lag_label, date_label, doy_label, s_doy_label, year_label, year_month_label, date_time_label, dos_label, season_label, month_label, day_label, dm_label, time_label, station_label, date_asstring_label, temp_min_label, temp_max_label, temp_air_label, temp_range_label, wet_buld_label, dry_bulb_label, evaporation_label, element_factor_label, identifier_label, capacity_label, wind_speed_label, wind_direction_label, lat_label, lon_label, alt_label, season_station_label, date_station_label, sunshine_hours_label, radiation_label, cloud_cover_label)
 
 # Column metadata
-climatic_type_label = "Climatic_Type"
+climatic_type_label <- "Climatic_Type"
+is_element_label <- "Is_Element"
+
+is_climatic_element <- function(x) {
+  return(x %in% c(rain_label, rain_day_label, rain_day_lag_label, temp_min_label, temp_max_label, temp_air_label,
+                  temp_range_label, wet_buld_label, dry_bulb_label, evaporation_label, capacity_label, wind_speed_label,
+                  wind_direction_label, sunshine_hours_label, radiation_label, cloud_cover_label))
+}
 
 # Data frame metadata
-is_climatic_label = "Is_Climatic"
+is_climatic_label <- "Is_Climatic"
 
 DataBook$set("public","define_as_climatic", function(data_name, types, key_col_names, key_name) {
   self$add_key(data_name = data_name, col_names = key_col_names, key_name = key_name)
@@ -2389,6 +2541,11 @@ DataSheet$set("public","set_climatic_types", function(types) {
   self$append_to_variables_metadata(property = climatic_type_label, new_val = NULL)
   if(!all(names(types) %in% all_climatic_column_types)) stop("Cannot recognise the following climatic types: ", paste(names(types)[!names(types) %in% all_climatic_column_types], collapse = ", "))
   invisible(sapply(names(types), function(name) self$append_to_variables_metadata(types[name], climatic_type_label, name)))
+  element_cols <- types[is_climatic_element(names(types))]
+  other_cols <- setdiff(self$get_column_names(), element_cols)
+  self$append_to_variables_metadata(element_cols, is_element_label, TRUE)
+  self$append_to_variables_metadata(other_cols, is_element_label, FALSE)
+  
   types <- types[sort(names(types))]
   cat("Climatic dataset:", self$get_metadata(data_name_label), "\n")
   cat("----------------\n")
@@ -2419,7 +2576,15 @@ DataSheet$set("public","append_climatic_types", function(types) {
 
 #Method for creating inventory plot
 
-DataSheet$set("public","make_inventory_plot", function(date_col, station_col = NULL, year_col = NULL, doy_col = NULL, element_cols = NULL, add_to_data = FALSE, year_doy_plot = FALSE, coord_flip = FALSE, facet_by = NULL, graph_title = "Inventory Plot", key_colours = c("red", "grey"), display_rain_days = FALSE, rain_cats = list(breaks = c(0, 0.85, Inf), labels = c("Dry", "Rain"), key_colours = c("tan3", "blue"))) {
+DataSheet$set("public","make_inventory_plot", function(date_col, station_col = NULL, year_col = NULL, doy_col = NULL, element_cols = NULL, add_to_data = FALSE,
+                                                       year_doy_plot = FALSE, coord_flip = FALSE, facet_by = NULL, facet_xsize = 7, facet_ysize = 11, 
+                                                       graph_title = "Inventory Plot", graph_subtitle = NULL, graph_caption = NULL, title_size = NULL, 
+                                                       subtitle_size = NULL, caption_size = NULL, labelXAxis, labelYAxis, xSize = NULL, ySize = NULL,
+                                                       Xangle = NULL, Yangle = NULL, scale_xdate, fromXAxis = NULL, toXAxis = NULL, byXaxis = NULL, date_ylabels, 
+                                                       legend_position = NULL, xlabelsize = NULL, ylabelsize = NULL, scale = NULL, dir = "", row_col_number,
+                                                       nrow = NULL, ncol = NULL, scale_ydate = FALSE, date_ybreaks, step = 1, key_colours = c("red", "grey"), 
+                                                       display_rain_days = FALSE, rain_cats = list(breaks = c(0, 0.85, Inf), labels = c("Dry", "Rain"), 
+                                                       key_colours = c("tan3", "blue"))) {
   if(missing(date_col)) stop("Date columns must be specified.")
   if(missing(element_cols)) stop("Element column(s) must be specified.")
   if(!lubridate::is.Date(self$get_columns_from_data(date_col))) stop(paste(date_col, " must be of type Date."))
@@ -2435,7 +2600,7 @@ DataSheet$set("public","make_inventory_plot", function(date_col, station_col = N
     if(is.null(year_col)) {
       if(is_climatic) {
         if(is.null(self$get_climatic_column_name(year_label))) {
-          self$split_date(col_name = date_col, year = TRUE)
+          self$split_date(col_name = date_col, year_val = TRUE)
         }
         year_col <- self$get_climatic_column_name(year_label)
       }
@@ -2509,7 +2674,7 @@ DataSheet$set("public","make_inventory_plot", function(date_col, station_col = N
   }
   if(year_doy_plot) {
     curr_data[["common_date"]] <- as.Date(paste0("2000-", curr_data[[doy_col]]), "%Y-%j")
-    g <- ggplot2::ggplot(data = curr_data, mapping = ggplot2::aes_(x = as.name(year_col), y = as.name("common_date"), colour = as.name(key_name))) + ggplot2::geom_point(size=5, shape=15) + ggplot2::scale_colour_manual(values = key) + ggplot2::scale_y_date(name = "Date", date_breaks = "2 month", labels = function(x) format(x, "%e %b"))
+    g <- ggplot2::ggplot(data = curr_data, mapping = ggplot2::aes_(x = as.name(year_col), y = as.name("common_date"), colour = as.name(key_name))) + ggplot2::geom_point(size=5, shape=15) + ggplot2::scale_colour_manual(values = key) + ggplot2::scale_y_date(date_breaks = "2 month", labels = function(x) format(x, "%e %b"))
     if(!is.null(station_col) && length(element_cols) > 1) {
       if(is.null(facet_by)) {
         message("facet_by not specified. facets will be by stations-elements.")
@@ -2525,10 +2690,14 @@ DataSheet$set("public","make_inventory_plot", function(date_col, station_col = N
       }
       
       if(facet_by == "stations-elements") {
-        g <- g + ggplot2::facet_grid(facets = as.formula(paste(station_col, "+ variable~.")))
+          if(!missing(row_col_number)){
+                  g <- g + ggplot2::facet_wrap(facets = as.formula(paste(".~",station_col, "+ variable")), nrow = nrow, ncol = ncol, scales = scale, dir = dir)
+	      }else {g <- g + ggplot2::facet_grid(facets = as.formula(paste(station_col, "~variable")))}
       }
       else if(facet_by == "elements-stations") {
-        g <- g + ggplot2::facet_grid(facets = as.formula(paste("variable +", station_col, "~.")))
+           if(!missing(row_col_number)){
+                  g <- g + ggplot2::facet_wrap(facets = as.formula(paste(".~variable +",station_col)), nrow = nrow, ncol = ncol, scales = scale, dir = dir)
+	      }else {g <- g + ggplot2::facet_grid(facets = as.formula(paste("variable~",station_col)))}
       }
       else stop("invalid facet_by value:", facet_by)
     }
@@ -2539,23 +2708,52 @@ DataSheet$set("public","make_inventory_plot", function(date_col, station_col = N
       }
     }
     else if(length(element_cols) > 1) {
-      g <- g + ggplot2::facet_grid(facets = variable~.)
+          if(!missing(row_col_number)){
+               g <- g + ggplot2::facet_wrap(.~variable, nrow = nrow, ncol = ncol, scales = scale, dir = dir)
+	      }else {g <- g + ggplot2::facet_grid(facets = variable~.)}
+
     }
+     if(!missing(scale_xdate)){ g <- g + ggplot2::scale_x_continuous(breaks=seq(fromXAxis, toXAxis, byXaxis)) } 
+     if(scale_ydate && !missing(date_ybreaks) && !missing(date_ylabels)){ g <- g + ggplot2::scale_y_date(breaks = seq(min(curr_data[["common_date"]]), max(curr_data[["common_date"]]), by = paste0(step," ",date_ybreaks)), date_labels = date_ylabels) } 
   }
   else {
+        g <- ggplot2::ggplot(data = curr_data, ggplot2::aes_(x = as.name(date_col), y = 1, fill = as.name(key_name))) + ggplot2::geom_raster() + ggplot2::scale_fill_manual(values = key) + ggplot2::scale_x_date(date_minor_breaks = "1 year")
     if(!is.null(station_col) && length(element_cols) > 1) {
       if(is.null(facet_by) || facet_by == "stations") {
         if(is.null(facet_by)) message("facet_by not specified. facets will be by stations.")
-        g <- ggplot2::ggplot(data = curr_data, ggplot2::aes_(x = as.name(date_col), y = as.name("variable"), fill = as.name(key_name))) + ggplot2::geom_raster() + ggplot2::scale_fill_manual(values = key) + ggplot2::scale_x_date(date_minor_breaks = "1 year") + ggplot2::geom_hline(yintercept = seq(0.5, by = 1, length.out = length(levels(curr_data[["variable"]])) + 1)) + ggplot2::facet_grid(facets = as.formula(paste(station_col, "~."))) + ggplot2::labs(y = "Elements")
+        if(!missing(row_col_number)){
+                g <- g + ggplot2::facet_wrap(facets = as.formula(paste(station_col, "+ variable~.")), nrow = nrow, ncol = ncol, scales = scale, dir = dir) + blank_y_axis + ggplot2::scale_y_continuous(breaks = NULL) + ggplot2::labs(y = NULL)
+        }
+        else{
+                g <- g + ggplot2::facet_grid(facets = as.formula(paste(station_col, "+ variable~."))) + blank_y_axis + ggplot2::scale_y_continuous(breaks = NULL) + ggplot2::labs(y = NULL)
+            }
       }
       else if(facet_by == "elements") {
-        g <- ggplot2::ggplot(data = curr_data, ggplot2::aes_(x = as.name(date_col), y = as.name(station_col), fill = as.name(key_name))) + ggplot2::geom_raster() + ggplot2::scale_fill_manual(values = key) + ggplot2::scale_x_date(date_minor_breaks = "1 year") + ggplot2::geom_hline(yintercept = seq(0.5, by = 1, length.out = length(levels(curr_data[[station_col]])) + 1)) + ggplot2::facet_grid(facets = variable~.)
-      }
+       if(!missing(row_col_number)){
+                g <- g + ggplot2::facet_wrap(facets = as.formula(paste("variable +", station_col, "~.")), nrow = nrow, ncol = ncol, scales = scale, dir = dir) + blank_y_axis + ggplot2::scale_y_continuous(breaks = NULL) + ggplot2::labs(y = NULL)
+        }else{
+               g <- g + ggplot2::facet_grid(facets = as.formula(paste("variable +", station_col, "~."))) + blank_y_axis + ggplot2::scale_y_continuous(breaks = NULL) + ggplot2::labs(y = NULL)
+             }
+     }
       else if(facet_by == "stations-elements") {
-        g <- ggplot2::ggplot(data = curr_data, ggplot2::aes_(x = as.name(date_col), y = 1, fill = as.name(key_name))) + ggplot2::geom_raster() + ggplot2::scale_fill_manual(values = key) + ggplot2::scale_x_date(date_minor_breaks = "1 year") + ggplot2::facet_grid(facets = as.formula(paste(station_col, "+variable~."))) + blank_y_axis + ggplot2::scale_y_continuous(breaks = NULL) + ggplot2::labs(y = "")
+         if(!missing(row_col_number)){
+              g <- g + ggplot2::facet_wrap(facets = as.formula(paste(".~",station_col, "+ variable")), nrow = nrow, ncol = ncol, scales = scale, dir = dir) + blank_y_axis + ggplot2::scale_y_continuous(breaks = NULL) + ggplot2::labs(y = NULL)
+
+         }
+         else{
+               g <- g + ggplot2::facet_grid(facets = as.formula(paste(station_col, "~variable"))) + blank_y_axis + ggplot2::scale_y_continuous(breaks = NULL) + ggplot2::labs(y = NULL)
+
+         }
       }
       else if(facet_by == "elements-stations") {
-        g <- ggplot2::ggplot(data = curr_data, ggplot2::aes_(x = as.name(date_col), y = 1, fill = as.name(key_name))) + ggplot2::geom_raster() + ggplot2::scale_fill_manual(values = key) + ggplot2::scale_x_date(date_minor_breaks = "1 year") + ggplot2::facet_grid(facets = as.formula(paste("variable +", station_col, "~."))) + blank_y_axis + ggplot2::scale_y_continuous(breaks = NULL) + ggplot2::labs(y = "")
+          if(!missing(row_col_number)){
+               g <- g +  ggplot2::facet_wrap(facets = as.formula(paste(".~variable +",station_col)), nrow = nrow, ncol = ncol, scales = scale, dir = dir) + blank_y_axis + ggplot2::scale_y_continuous(breaks = NULL) + ggplot2::labs(y = NULL)
+
+          }
+        else{
+               g <- g + ggplot2::facet_grid(facets = as.formula(paste("variable~", station_col))) + blank_y_axis + ggplot2::scale_y_continuous(breaks = NULL) + ggplot2::labs(y = NULL)
+
+        }
       }
       else stop("invalid facet_by value:", facet_by)
     }
@@ -2572,11 +2770,14 @@ DataSheet$set("public","make_inventory_plot", function(date_col, station_col = N
     else {
       g <- ggplot2::ggplot(data = curr_data, ggplot2::aes_(x = as.name(date_col), y = 1, fill = as.name(key_name))) + ggplot2::geom_raster() + ggplot2::scale_fill_manual(values = key) + ggplot2::scale_x_date(date_minor_breaks = "1 year") + ggplot2::geom_hline(yintercept = seq(0.5, by = 1, length.out = length(levels(curr_data[["variable"]])) + 1)) + blank_y_axis + ggplot2::scale_y_continuous(breaks = NULL) + ggplot2::labs(y = element_cols)
     }
-  }
+   if(!missing(scale_xdate)){ g <- g + ggplot2::scale_x_date(breaks = paste0(byXaxis," year"), limits = c(from=as.Date(paste0(fromXAxis,"-01-01")), to = as.Date(paste0(toXAxis,"-12-31"))), date_labels = "%Y") } 
+ }
   if(coord_flip) {
     g <- g + ggplot2::coord_flip()
   }
-  return(g + ggplot2::ggtitle(graph_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5)))
+  if(!missing(labelXAxis)){g <- g + ggplot2::xlab(labelXAxis)}else{g <- g + ggplot2::xlab(NULL)}
+  if(!missing(labelYAxis)){g <- g + ggplot2::ylab(labelYAxis)}else{g <- g + ggplot2::ylab(NULL)}
+  return(g + ggplot2::labs(title = graph_title, subtitle = graph_subtitle, caption = graph_caption) + ggplot2::theme(strip.text.x = element_text(margin = margin(1, 0, 1, 0), size = facet_xsize), strip.text.y = element_text(margin = margin(1, 0, 1, 0), size = facet_ysize), legend.position=legend_position, plot.title = ggplot2::element_text(hjust = 0.5, size = title_size), plot.subtitle = ggplot2::element_text(size = subtitle_size), plot.caption = ggplot2::element_text(size = caption_size), axis.text.x = ggplot2::element_text(size=xSize, angle = Xangle, vjust = 0.6), axis.title.x = ggplot2::element_text(size=xlabelsize), axis.title.y = ggplot2::element_text(size=ylabelsize), axis.text.y = ggplot2::element_text(size = ySize, angle = Yangle, hjust = 0.6)))
 }
 )
 
@@ -2617,7 +2818,7 @@ DataSheet$set("public","infill_missing_dates", function(date_name, factors, star
     }
     full_dates <- seq(min_date, max_date, by = "day")
     if(length(full_dates) > length(date_col)) {
-      cat("Adding", (length(full_dates) - length(date_col)), "rows for date gaps", "\n")
+      cat("Added", (length(full_dates) - length(date_col)), "rows to extend data and fill date gaps", "\n")
       full_dates <- data.frame(full_dates)
       names(full_dates) <- date_name
       by <- date_name
@@ -2634,6 +2835,9 @@ DataSheet$set("public","infill_missing_dates", function(date_name, factors, star
       col_name <- factors[i]
       col_names_exp[[i]] <- lazyeval::interp(~ var, var = as.name(col_name))
     }
+    all_factors <- self$get_columns_from_data(factors, use_current_filter = FALSE)
+    first_factor <- self$get_columns_from_data(factors[1], use_current_filter = FALSE)
+    if(dplyr::n_distinct(interaction(all_factors, drop = TRUE))!= dplyr::n_distinct(first_factor)) stop("The multiple factor variables are not in sync. Should have same number of levels.")
     grouped_data <- self$get_data_frame(use_current_filter = FALSE) %>% dplyr::group_by_(.dots = col_names_exp)
     date_ranges <- grouped_data %>% dplyr::summarise_(.dots = setNames(list(lazyeval::interp(~ min(var), var = as.name(date_name)), lazyeval::interp(~ max(var), var = as.name(date_name))), c("min_date", "max_date")))
     date_lengths <- grouped_data %>% dplyr::summarise(count = n())
@@ -2656,8 +2860,8 @@ DataSheet$set("public","infill_missing_dates", function(date_name, factors, star
     full_dates_list <- list()
     for(j in 1:nrow(date_ranges)) {
       full_dates <- seq(date_ranges$min_date[j], date_ranges$max_date[j], by = "day")
-      if(length(full_dates) > date_lengths[[2]][j]) {
-        cat(paste(unlist(date_ranges[1:length(factors)][j, ]), collapse = "-"), ": Adding", (length(full_dates) - date_lengths[[2]][j]), "rows for date gaps", "\n")
+      if(length(full_dates) > date_lengths[,"count"][j,]) {
+        cat(paste(unlist(date_ranges[1:length(factors)][j, ]), collapse = "-"), ": Added", (length(full_dates) - unlist(date_lengths[,"count"][j,])), "rows to extend data and fill date gaps", "\n")
         merge_required <- TRUE
       }
       full_dates <- data.frame(full_dates)
@@ -3596,3 +3800,197 @@ DataSheet$set("public", "get_variable_sets", function(set_names, force_as_list) 
   return(out)
 }
 )
+
+DataSheet$set("public", "patch_climate_element", function(date_col_name = "", var = "", vars = c(), max_mean_bias = NA, max_stdev_bias = NA, column_name, station_col_name) {
+  if (missing(date_col_name)) stop("date is missing with no default")
+  if (missing(var)) stop("var is missing with no default")
+  if (missing(vars)) stop("vars is missing with no default")
+  date_col <- self$get_columns_from_data(date_col_name, use_current_filter = FALSE)
+  min_date <- min(date_col)
+  max_date <- max(date_col)
+  full_date_range <- seq(from = min_date, to = max_date, by = "day")
+  if (!lubridate::is.Date(date_col)) stop("This column must be a date or time!")
+  curr_data <- self$get_data_frame(use_current_filter = FALSE)
+  if (!missing(station_col_name)) {
+    station_col <- self$get_columns_from_data(station_col_name, use_current_filter = FALSE)
+    station_names <- unique(station_col)
+    list_out <- list()
+    date_lengths <- NULL
+    for (i in seq_along(station_names)) {
+      temp_data <- curr_data[station_col == station_names[i], ]
+      min_date <- min(temp_data[, date_col_name])
+      max_date <- max(temp_data[, date_col_name])
+      full_date_range <- seq(from = min_date, to = max_date, by = "day")
+      date_lengths[i] <- length(full_date_range)
+      var_col <- temp_data[, var]
+      date_col <- temp_data[, date_col_name]
+      Year <- lubridate::year(date_col)
+      Month <- lubridate::month(date_col)
+      Day <- lubridate::day(date_col)
+      weather <- data.frame(Year, Month, Day, var_col)
+      colnames(weather)[4] <- var
+      patch_weather <- list()
+      for (j in seq_along(vars)) {
+        col <- temp_data[, vars[j]]
+        patch_weather[[j]] <- data.frame(Year, Month, Day, col)
+        colnames(patch_weather[[j]])[4] <- var
+      }
+      out <- chillR::patch_daily_temperatures(weather = weather, patch_weather = patch_weather, vars = var, max_mean_bias = max_mean_bias, max_stdev_bias = max_stdev_bias)
+      list_out[[i]] <- out[[1]][, var]
+    }
+    gaps <- sum(date_lengths) - dim(curr_data)[[1]]
+  } else {
+    gaps <- length(full_date_range) - length(date_col)
+    var_col <- self$get_columns_from_data(var, use_current_filter = FALSE)
+    Year <- lubridate::year(date_col)
+    Month <- lubridate::month(date_col)
+    Day <- lubridate::day(date_col)
+    weather <- data.frame(Year, Month, Day, var_col)
+    colnames(weather)[4] <- var
+    patch_weather <- list()
+    for (i in seq_along(vars)) {
+      col <- self$get_columns_from_data(vars[i], use_current_filter = FALSE)
+      patch_weather[[i]] <- data.frame(Year, Month, Day, col)
+      colnames(patch_weather[[i]])[4] <- var
+    }
+  }
+  if (!missing(station_col_name)) {
+    col <- unlist(list_out)
+  }
+  else {
+    out <- chillR::patch_daily_temperatures(weather = weather, patch_weather = patch_weather, vars = var, max_mean_bias = max_mean_bias, max_stdev_bias = max_stdev_bias)
+    col <- out[[1]][, var]
+  }
+  if (length(col) == dim(curr_data)[[1]]) {
+    gaps_remaining <- summary_count_missing(col)
+    gaps_filled <- (summary_count_missing(curr_data[, var]) - gaps_remaining)
+    cat(gaps_filled, " gaps filled", gaps_remaining, " remaining.", "\n")
+    self$add_columns_to_data(col_name = column_name, col_data = col)
+  } else if (gaps != 0) {
+    cat(gaps, " rows for date gaps are missing, fill date gaps before proceeding.", "\n")
+  }
+})
+
+DataSheet$set("public", "visualize_element_na", function(element_col_name, element_col_name_imputed, station_col_name, x_axis_labels_col_name, ncol = 2, type = "distribution", xlab = NULL, ylab = NULL, legend = TRUE, orientation = "horizontal", interval_size = 1461, x_with_truth = NULL, measure = "percent") {
+  curr_data <- self$get_data_frame()
+  if (!missing(station_col_name)) {
+    station_col <- self$get_columns_from_data(station_col_name)
+    station_names <- unique(station_col)
+  }
+  if (!missing(element_col_name)) {
+    element_col <- self$get_columns_from_data(element_col_name)
+  }
+  if (!missing(element_col_name_imputed)) {
+    element_imputed_col <- self$get_columns_from_data(element_col_name_imputed)
+  }
+  if (!(type %in% c("distribution", "gapsize", "interval", "imputation"))) stop(type, " must be either distribution, gapsize or imputation")
+  plt_list <- list()
+  if (type == "distribution") {
+    if (!missing(station_col_name) && dplyr::n_distinct(station_names) > 1) {
+      for (i in seq_along(station_names)) {
+        temp_data <- curr_data[station_col == station_names[i], ]
+        plt_list[[i]] <- imputeTS::ggplot_na_distribution(x = temp_data[, element_col_name], x_axis_labels = temp_data[, x_axis_labels_col_name], title = station_names[i], xlab = xlab, ylab = ylab)
+      }
+    } else {
+      plt <- imputeTS::ggplot_na_distribution(x = element_col, x_axis_labels = curr_data[, x_axis_labels_col_name], xlab = xlab, ylab = ylab)
+    }
+  } else if (type == "gapsize") {
+    if (!missing(station_col_name) && dplyr::n_distinct(station_names) > 1) {
+      for (i in seq_along(station_names)) {
+        temp_data <- curr_data[station_col == station_names[i], ]
+        plt_list[[i]] <- imputeTS::ggplot_na_gapsize(x = temp_data[, element_col_name], include_total = TRUE, title = paste0(station_names[i], ":Occurrence of gap sizes"), xlab = xlab, ylab = ylab, legend = legend, orientation = orientation)
+      }
+    } else {
+      plt <- imputeTS::ggplot_na_gapsize(x = element_col, include_total = TRUE, xlab = xlab, ylab = ylab, legend = legend, orientation = orientation)
+    }
+  } else if (type == "interval") {
+    if (!missing(station_col_name) && dplyr::n_distinct(station_names) > 1) {
+      for (i in seq_along(station_names)) {
+        temp_data <- curr_data[station_col == station_names[i], ]
+        plt_list[[i]] <- imputeTS::ggplot_na_intervals(x = temp_data[, element_col_name], title = paste0(station_names[i], ":Missing Values per Interval"), ylab = ylab, interval_size = interval_size, measure = measure)
+      }
+    } else {
+      plt <- imputeTS::ggplot_na_intervals(x = element_col, ylab = ylab, interval_size = interval_size, measure = measure)
+    }
+  } else if (type == "imputation") {
+    if (!missing(station_col_name) && dplyr::n_distinct(station_names) > 1) {
+      for (i in seq_along(station_names)) {
+        temp_data <- curr_data[station_col == station_names[i], ]
+        plt_list[[i]] <- imputeTS::ggplot_na_imputations(x_with_na = temp_data[, element_col_name], x_with_imputations = temp_data[, element_col_name_imputed], x_axis_labels = temp_data[, x_axis_labels_col_name], title = station_names[i], xlab = xlab, ylab = ylab, legend = legend, x_with_truth = x_with_truth)
+      }
+    } else {
+      plt <- imputeTS::ggplot_na_imputations(x_with_na = element_col, x_with_imputations = element_imputed_col, x_axis_labels = curr_data[, x_axis_labels_col_name], xlab = xlab, ylab = ylab, legend = legend, x_with_truth = x_with_truth)
+    }
+  }
+  if (!missing(station_col_name) && dplyr::n_distinct(station_names) > 1) {
+    return(patchwork::wrap_plots(plt_list, ncol = ncol))
+  }
+  else {
+    return(plt)
+  }
+})
+
+DataSheet$set("public", "get_data_entry_data", function(station, date, elements, view_variables, station_name, type, start_date, end_date) {
+  cols <- c(date, elements)
+  if (!missing(view_variables)) cols <- c(cols, view_variables)
+  if (!missing(station)) cols <- c(station, cols)
+  curr_data <- self$get_columns_from_data(cols)
+  col_names <- c(date, elements)
+  if (!missing(station)) col_names <- c(station, col_names)
+  if (!missing(view_variables)) col_names <- c(col_names, paste(view_variables, "(view)"))
+  names(curr_data) <- col_names
+  
+  if (!missing(station)) curr_data <- curr_data[curr_data[[station]] == station_name, ]
+  if (type == "day") {
+    curr_data <- curr_data[curr_data[[date]] == start_date, ]
+  } else if (type == "month") {
+    if (lubridate::day(start_date) != 1) warning("type = 'month' but start_date is not 1st of the month.")
+    curr_data <- curr_data[curr_data[[date]] >= start_date & curr_data[[date]] <= (start_date + months(1) - 1), ]
+  } else if (type == "range") {
+    curr_data <- curr_data[curr_data[[date]] >= start_date & curr_data[[date]] <= end_date, ]
+  }
+  if (nrow(curr_data) == 0) stop("No data in range.")
+  # Convert to character to they display correctly in VB grid.
+  curr_data[[date]] <- as.character(curr_data[[date]])
+  if (!missing(view_variables) && date %in% view_variables) curr_data[[paste(date, "(view)")]] <- as.character(curr_data[[paste(date, "(view)")]])
+  if (!missing(station)) curr_data[[station]] <- as.character(curr_data[[station]])
+  curr_data
+})
+
+DataSheet$set("public", "save_data_entry_data", function(new_data, rows_changed, add_flags = FALSE, ...) {
+  if (nrow(new_data) != length(rows_changed)) stop("new_data must have the same number of rows as length of rows_changed.")
+  curr_data <- self$get_data_frame(use_current_filter = FALSE)
+  changed_data <- curr_data
+  for (i in seq_along(rows_changed)) {
+    for (k in seq_along(names(new_data))) {
+      changed_data[rows_changed[i], names(new_data)[k]] <- new_data[i, names(new_data)[k]]
+    }
+  }
+  if (add_flags) {
+    for (i in names(new_data)[-c(1:2)]) {
+      col1 <- curr_data[, i]
+      col2 <- changed_data[, i]
+      if (paste0(i, "_fl") %in% colnames(changed_data)) {
+        flag_col1 <- changed_data[, paste0(i, "_fl")]
+        flag_col2 <- factor(x = ifelse(is.na(col1) & !is.na(col2), "add", ifelse(!is.na(col1) & is.na(col2), "edit", ifelse(col1 == col2, "data", "edit"))), levels = c("data", "add", "edit"))
+        changed_data[, paste0(i, "_fl")] <- factor(ifelse(flag_col1 %in% c("edit", "add"), as.character(flag_col1), as.character(flag_col2)), levels = c("data", "add", "edit"))
+      } else {
+        changed_data[, paste0(i, "_fl")] <- factor(x = ifelse(is.na(col1) & !is.na(col2), "add", ifelse(!is.na(col1) & is.na(col2), "edit", ifelse(col1 == col2, "data", "edit"))), levels = c("data", "add", "edit"))
+      }
+    }
+  }
+  cat("Values updated in:", length(rows_changed), "row(s)\n")
+  self$set_data(changed_data)
+  # Added this line to fix the bug of having the variable names in the metadata changing to NA
+  # This affects factor columns only  - we need to find out why and how to solve it best
+  self$add_defaults_variables_metadata(self$get_column_names())
+  self$data_changed <- TRUE
+})
+
+DataSheet$set("public", "add_flag_fields", function(col_names) {
+  curr_data <- self$get_columns_from_data(col_names, force_as_data_frame = TRUE)
+  for (i in colnames(curr_data)) {
+    col_data <- factor(ifelse(is.na(curr_data[, i]), NA_real_, "data"), levels = c("data", "edit", "add"))
+    self$add_columns_to_data(col_data = col_data, col_name = paste0(i, "_fl"))
+  }
+})

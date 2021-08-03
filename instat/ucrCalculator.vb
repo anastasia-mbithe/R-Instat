@@ -20,12 +20,12 @@ Public Class ucrCalculator
     Public Event SelectionChanged()
     Public Event SaveNameChanged()
     Public Event DataFrameChanged()
-    Public Event SaveResultsCheckedChanged()
     Public Event TryCommadClick()
     Public bFirstLoad As Boolean = True
     Public bControlsInitialised As Boolean = False
     Public clsHelp As New RFunction
     Private iBasicWidth As Integer
+    Private iBaseHeight As Integer
 
     Public Sub New()
 
@@ -35,6 +35,7 @@ Public Class ucrCalculator
         ' Add any initialization after the InitializeComponent() call.
         InitialiseControls()
         iBasicWidth = Me.Width
+        iBaseHeight = Me.Height
     End Sub
 
     Private Sub ucrCalculator_Load(sender As Object, e As EventArgs) Handles MyBase.Load
@@ -53,14 +54,12 @@ Public Class ucrCalculator
     End Sub
 
     Public Sub InitialiseControls()
-        ucrInputCalOptions.SetItems({"Basic", "Maths", "Logical and Symbols", "Summary", "Strings (Character Columns)", "Factor", "Probability", "Dates", "Transform", "Wakefield", "Circular", "hydroGOF"}) ' "Rows" is a temp. name
+        ucrInputCalOptions.SetItems({"Basic", "Maths", "Logical and Symbols", "Summary", "Strings (Character Columns)", "Factor", "Probability", "Dates/Times", "Transform", "Wakefield", "Circular", "hydroGOF"}) ' "Rows" is a temp. name
         ucrInputCalOptions.SetDropDownStyleAsNonEditable()
         ucrReceiverForCalculation.Selector = ucrSelectorForCalculations
 
         clsHelp.SetPackageName("utils")
         clsHelp.SetRCommand("help")
-        cmdDoy.Enabled = False ' temp
-        cmdDek.Enabled = False ' temp
         'Temp disabled::Needs discussions to see if they are needed
         cmdAny.Enabled = False
         cmdAll.Enabled = False
@@ -294,7 +293,7 @@ Public Class ucrCalculator
                 grpSymbols.Visible = False
                 grpHydroGOF.Visible = False
                 iHelpCalcID = 126
-                Me.Size = New Size(iBasicWidth * 1.38, Me.Height)
+                Me.Size = New Size(iBasicWidth * 1.38, iBaseHeight)
             Case "Logical and Symbols"
                 grpDates.Visible = False
                 grpSummary.Visible = False
@@ -305,7 +304,7 @@ Public Class ucrCalculator
                 grpFactor.Visible = False
                 grpHydroGOF.Visible = False
                 iHelpCalcID = 127
-                Me.Size = New Size(iBasicWidth * 1.44, Me.Height)
+                Me.Size = New Size(iBasicWidth * 1.44, iBaseHeight)
                 grpProbabilty.Visible = False
                 grpTransform.Visible = False
                 grpCircular.Visible = False
@@ -319,7 +318,7 @@ Public Class ucrCalculator
                 grpMaths.Visible = False
                 grpBasic.Visible = True
                 iHelpCalcID = 128
-                Me.Size = New Size(iBasicWidth * 1.51, Me.Height)
+                Me.Size = New Size(iBasicWidth * 1.51, iBaseHeight)
                 grpStrings.Visible = False
                 grpFactor.Visible = False
                 grpProbabilty.Visible = False
@@ -345,7 +344,7 @@ Public Class ucrCalculator
                 grpSymbols.Visible = True
                 grpHydroGOF.Visible = False
                 iHelpCalcID = 129
-                Me.Size = New Size(iBasicWidth * 1.42, Me.Height)
+                Me.Size = New Size(iBasicWidth * 1.42, iBaseHeight)
             Case "Factor"
                 grpFactor.Visible = True
                 grpDates.Visible = False
@@ -355,7 +354,7 @@ Public Class ucrCalculator
                 grpBasic.Visible = True
                 grpStrings.Visible = False
                 iHelpCalcID = 127
-                Me.Size = New Size(iBasicWidth * 1.44, Me.Height)
+                Me.Size = New Size(iBasicWidth * 1.44, iBaseHeight)
                 grpProbabilty.Visible = False
                 grpTransform.Visible = False
                 grpCircular.Visible = False
@@ -379,8 +378,8 @@ Public Class ucrCalculator
                 grpSymbols.Visible = False
                 grpHydroGOF.Visible = False
                 iHelpCalcID = 120
-                Me.Size = New Size(iBasicWidth * 1.57, Me.Height)
-            Case "Dates"
+                Me.Size = New Size(iBasicWidth * 1.57, iBaseHeight)
+            Case "Dates/Times"
                 grpDates.Visible = True
                 grpProbabilty.Visible = False
                 grpStrings.Visible = False
@@ -396,7 +395,7 @@ Public Class ucrCalculator
                 grpSymbols.Visible = False
                 grpHydroGOF.Visible = False
                 iHelpCalcID = 130
-                Me.Size = New Size(iBasicWidth * 1.32, Me.Height)
+                Me.Size = New Size(iBasicWidth * 1.32, iBaseHeight)
             Case "Transform"
                 grpDates.Visible = False
                 grpProbabilty.Visible = False
@@ -412,7 +411,7 @@ Public Class ucrCalculator
                 grpModifier.Visible = False
                 grpSymbols.Visible = False
                 grpHydroGOF.Visible = False
-                Me.Size = New Size(iBasicWidth * 1.33, Me.Height)
+                Me.Size = New Size(iBasicWidth * 1.33, iBaseHeight)
             Case "Wakefield"
                 grpDates.Visible = False
                 grpProbabilty.Visible = False
@@ -428,7 +427,7 @@ Public Class ucrCalculator
                 grpSymbols.Visible = False
                 grpModifier.Visible = False
                 grpHydroGOF.Visible = False
-                Me.Size = New Size(iBasicWidth * 1.7, Me.Height * 1.07)
+                Me.Size = New Size(iBasicWidth * 1.7, iBaseHeight)
             Case "Circular"
                 grpDates.Visible = False
                 grpProbabilty.Visible = False
@@ -444,7 +443,7 @@ Public Class ucrCalculator
                 grpModifier.Visible = False
                 grpSymbols.Visible = False
                 grpHydroGOF.Visible = False
-                Me.Size = New Size(iBasicWidth * 1.39, Me.Height)
+                Me.Size = New Size(iBasicWidth * 1.39, iBaseHeight)
             Case "hydroGOF"
                 grpDates.Visible = False
                 grpProbabilty.Visible = False
@@ -460,10 +459,10 @@ Public Class ucrCalculator
                 grpCircular.Visible = False
                 grpModifier.Visible = False
                 grpSymbols.Visible = False
-                Me.Size = New Size(iBasicWidth * 1.27, Me.Height)
+                Me.Size = New Size(iBasicWidth * 1.27, iBaseHeight)
             Case Else
                 grpDates.Visible = False
-                Me.Size = New Size(iBasicWidth, Me.Height)
+                Me.Size = New Size(iBasicWidth, iBaseHeight)
                 grpProbabilty.Visible = False
                 grpSummary.Visible = False
                 grpBasic.Visible = True
@@ -983,10 +982,6 @@ Public Class ucrCalculator
         End If
     End Sub
 
-    Private Sub chkSaveResultInto_CheckedChanged(sender As Object, e As EventArgs) Handles chkSaveResultInto.CheckedChanged
-        RaiseEvent SaveResultsCheckedChanged()
-    End Sub
-
     Private Sub ucrSelectorForCalculations_DataframeChanged() Handles ucrSelectorForCalculations.DataFrameChanged
         ucrTryCalculator.ucrInputTryMessage.SetName("")
         RaiseEvent DataFrameChanged()
@@ -1097,16 +1092,16 @@ Public Class ucrCalculator
     End Sub
     Private Sub cmdMinutes_Click(sender As Object, e As EventArgs) Handles cmdminutes.Click
         If chkShowParameters.Checked Then
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::min(x = )", 1)
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::minute(x = )", 1)
         Else
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::min()", 1)
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::minute()", 1)
         End If
     End Sub
     Private Sub cmdSec_Click(sender As Object, e As EventArgs) Handles cmdSec.Click
         If chkShowParameters.Checked Then
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::sec(x = )", 1)
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::second(x = )", 1)
         Else
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::sec()", 1)
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::second()", 1)
         End If
     End Sub
     Private Sub cmdAm_Click(sender As Object, e As EventArgs) Handles cmdAm.Click
@@ -1118,9 +1113,9 @@ Public Class ucrCalculator
     End Sub
     Private Sub cmdD_In_M_Click(sender As Object, e As EventArgs) Handles cmdD_In_M.Click
         If chkShowParameters.Checked Then
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::d_in_m(x = )", 1)
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::days_in_month(x = )", 1)
         Else
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::d_in_m()", 1)
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::days_in_month()", 1)
         End If
     End Sub
     Private Sub cmdQuarter_Click(sender As Object, e As EventArgs) Handles cmdQuarter.Click
@@ -1129,14 +1124,6 @@ Public Class ucrCalculator
         Else
             ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::quarter()", 1)
         End If
-    End Sub
-
-    Private Sub cmdDoy_Click(sender As Object, e As EventArgs) Handles cmdDoy.Click
-
-    End Sub
-
-    Private Sub cmdDek_Click(sender As Object, e As EventArgs) Handles cmdDek.Click
-
     End Sub
 
     Private Sub cmdBrackets_Click(sender As Object, e As EventArgs) Handles cmdBrackets.Click
@@ -1228,10 +1215,6 @@ Public Class ucrCalculator
 
     Private Sub ucrReceiverForCalculation_SelectionChanged(sender As Object, e As EventArgs) Handles ucrReceiverForCalculation.SelectionChanged
         RaiseEvent SelectionChanged()
-    End Sub
-
-    Private Sub ucrSaveResultInto_NameChanged() Handles ucrSaveResultInto.NameChanged
-        RaiseEvent SaveNameChanged()
     End Sub
 
     Private Sub cmdHelp_Click(sender As Object, e As EventArgs) Handles cmdHelp.Click
@@ -2745,4 +2728,37 @@ Public Class ucrCalculator
             ucrReceiverForCalculation.AddToReceiverAtCursorPosition("hydroGOF::VE(sim = , obs = )", 10)
         End If
     End Sub
+
+    Private Sub cmdDateTime_Click(sender As Object, e As EventArgs) Handles cmdDateTime.Click
+        If chkShowParameters.Checked Then
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::as_datetime(x = )", 2)
+        Else
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::as_datetime()", 1)
+        End If
+    End Sub
+
+    Private Sub cmdTime_Click(sender As Object, e As EventArgs) Handles cmdTime.Click
+        If chkShowParameters.Checked Then
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("hms::hms(seconds = , minutes = , hours = , days = )", 32)
+        Else
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("hms::hms()", 1)
+        End If
+    End Sub
+
+    Private Sub cmdPm_Click(sender As Object, e As EventArgs) Handles cmdPm.Click
+        If chkShowParameters.Checked Then
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::pm(x = )", 2)
+        Else
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("lubridate::pm()", 1)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' this will be raised when the input name is changed and even when the ucrSave checkbox checked status is changed
+    ''' </summary>
+    ''' <param name="ucrChangedControl"></param>
+    Private Sub ucrSaveResultInto_SaveNameChanged(ucrChangedControl As ucrCore) Handles ucrSaveResultInto.ControlContentsChanged
+        RaiseEvent SaveNameChanged()
+    End Sub
+
 End Class

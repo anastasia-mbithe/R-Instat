@@ -1134,6 +1134,15 @@
   <data name="&gt;&gt;tbSubset.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
+  <data name="ucrChkGreatCircleDist.Location" type="System.Drawing.Point, System.Drawing">
+    <value>11, 122</value>
+  </data>
+  <data name="ucrChkGreatCircleDist.Size" type="System.Drawing.Size, System.Drawing">
+    <value>464, 20</value>
+  </data>
+  <data name="ucrChkGreatCircleDist.TabIndex" type="System.Int32, mscorlib">
+    <value>4</value>
+  </data>
   <data name="&gt;&gt;ucrChkGreatCircleDist.Name" xml:space="preserve">
     <value>ucrChkGreatCircleDist</value>
   </data>
@@ -1145,6 +1154,15 @@
   </data>
   <data name="&gt;&gt;ucrChkGreatCircleDist.ZOrder" xml:space="preserve">
     <value>0</value>
+  </data>
+  <data name="ucrChkIncludeRequestedPoints.Location" type="System.Drawing.Point, System.Drawing">
+    <value>11, 96</value>
+  </data>
+  <data name="ucrChkIncludeRequestedPoints.Size" type="System.Drawing.Size, System.Drawing">
+    <value>501, 20</value>
+  </data>
+  <data name="ucrChkIncludeRequestedPoints.TabIndex" type="System.Int32, mscorlib">
+    <value>3</value>
   </data>
   <data name="&gt;&gt;ucrChkIncludeRequestedPoints.Name" xml:space="preserve">
     <value>ucrChkIncludeRequestedPoints</value>
@@ -1158,6 +1176,15 @@
   <data name="&gt;&gt;ucrChkIncludeRequestedPoints.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
+  <data name="ucrChkOnlyDataVariables.Location" type="System.Drawing.Point, System.Drawing">
+    <value>11, 18</value>
+  </data>
+  <data name="ucrChkOnlyDataVariables.Size" type="System.Drawing.Size, System.Drawing">
+    <value>464, 20</value>
+  </data>
+  <data name="ucrChkOnlyDataVariables.TabIndex" type="System.Int32, mscorlib">
+    <value>0</value>
+  </data>
   <data name="&gt;&gt;ucrChkOnlyDataVariables.Name" xml:space="preserve">
     <value>ucrChkOnlyDataVariables</value>
   </data>
@@ -1170,6 +1197,15 @@
   <data name="&gt;&gt;ucrChkOnlyDataVariables.ZOrder" xml:space="preserve">
     <value>2</value>
   </data>
+  <data name="ucrChkKeepRawTime.Location" type="System.Drawing.Point, System.Drawing">
+    <value>11, 44</value>
+  </data>
+  <data name="ucrChkKeepRawTime.Size" type="System.Drawing.Size, System.Drawing">
+    <value>501, 20</value>
+  </data>
+  <data name="ucrChkKeepRawTime.TabIndex" type="System.Int32, mscorlib">
+    <value>1</value>
+  </data>
   <data name="&gt;&gt;ucrChkKeepRawTime.Name" xml:space="preserve">
     <value>ucrChkKeepRawTime</value>
   </data>
@@ -1181,6 +1217,15 @@
   </data>
   <data name="&gt;&gt;ucrChkKeepRawTime.ZOrder" xml:space="preserve">
     <value>3</value>
+  </data>
+  <data name="ucrChkIncludeMetadata.Location" type="System.Drawing.Point, System.Drawing">
+    <value>11, 70</value>
+  </data>
+  <data name="ucrChkIncludeMetadata.Size" type="System.Drawing.Size, System.Drawing">
+    <value>501, 20</value>
+  </data>
+  <data name="ucrChkIncludeMetadata.TabIndex" type="System.Int32, mscorlib">
+    <value>2</value>
   </data>
   <data name="&gt;&gt;ucrChkIncludeMetadata.Name" xml:space="preserve">
     <value>ucrChkIncludeMetadata</value>
@@ -1246,7 +1291,7 @@
     <value>295, 433</value>
   </data>
   <data name="ucrBase.Size" type="System.Drawing.Size, System.Drawing">
-    <value>142, 30</value>
+    <value>229, 30</value>
   </data>
   <data name="ucrBase.TabIndex" type="System.Int32, mscorlib">
     <value>1</value>
@@ -1263,111 +1308,6 @@
   <data name="&gt;&gt;ucrBase.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
-  <data name="ucrChkGreatCircleDist.Location" type="System.Drawing.Point, System.Drawing">
-    <value>11, 122</value>
-  </data>
-  <data name="ucrChkGreatCircleDist.Size" type="System.Drawing.Size, System.Drawing">
-    <value>295, 20</value>
-  </data>
-  <data name="ucrChkGreatCircleDist.TabIndex" type="System.Int32, mscorlib">
-    <value>4</value>
-  </data>
-  <data name="&gt;&gt;ucrChkGreatCircleDist.Name" xml:space="preserve">
-    <value>ucrChkGreatCircleDist</value>
-  </data>
-  <data name="&gt;&gt;ucrChkGreatCircleDist.Type" xml:space="preserve">
-    <value>instat.ucrCheck, instat, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;ucrChkGreatCircleDist.Parent" xml:space="preserve">
-    <value>tbOptions</value>
-  </data>
-  <data name="&gt;&gt;ucrChkGreatCircleDist.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="ucrChkIncludeRequestedPoints.Location" type="System.Drawing.Point, System.Drawing">
-    <value>11, 96</value>
-  </data>
-  <data name="ucrChkIncludeRequestedPoints.Size" type="System.Drawing.Size, System.Drawing">
-    <value>295, 20</value>
-  </data>
-  <data name="ucrChkIncludeRequestedPoints.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
-  </data>
-  <data name="&gt;&gt;ucrChkIncludeRequestedPoints.Name" xml:space="preserve">
-    <value>ucrChkIncludeRequestedPoints</value>
-  </data>
-  <data name="&gt;&gt;ucrChkIncludeRequestedPoints.Type" xml:space="preserve">
-    <value>instat.ucrCheck, instat, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;ucrChkIncludeRequestedPoints.Parent" xml:space="preserve">
-    <value>tbOptions</value>
-  </data>
-  <data name="&gt;&gt;ucrChkIncludeRequestedPoints.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="ucrChkOnlyDataVariables.Location" type="System.Drawing.Point, System.Drawing">
-    <value>11, 18</value>
-  </data>
-  <data name="ucrChkOnlyDataVariables.Size" type="System.Drawing.Size, System.Drawing">
-    <value>162, 20</value>
-  </data>
-  <data name="ucrChkOnlyDataVariables.TabIndex" type="System.Int32, mscorlib">
-    <value>0</value>
-  </data>
-  <data name="&gt;&gt;ucrChkOnlyDataVariables.Name" xml:space="preserve">
-    <value>ucrChkOnlyDataVariables</value>
-  </data>
-  <data name="&gt;&gt;ucrChkOnlyDataVariables.Type" xml:space="preserve">
-    <value>instat.ucrCheck, instat, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;ucrChkOnlyDataVariables.Parent" xml:space="preserve">
-    <value>tbOptions</value>
-  </data>
-  <data name="&gt;&gt;ucrChkOnlyDataVariables.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="ucrChkKeepRawTime.Location" type="System.Drawing.Point, System.Drawing">
-    <value>11, 44</value>
-  </data>
-  <data name="ucrChkKeepRawTime.Size" type="System.Drawing.Size, System.Drawing">
-    <value>162, 20</value>
-  </data>
-  <data name="ucrChkKeepRawTime.TabIndex" type="System.Int32, mscorlib">
-    <value>1</value>
-  </data>
-  <data name="&gt;&gt;ucrChkKeepRawTime.Name" xml:space="preserve">
-    <value>ucrChkKeepRawTime</value>
-  </data>
-  <data name="&gt;&gt;ucrChkKeepRawTime.Type" xml:space="preserve">
-    <value>instat.ucrCheck, instat, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;ucrChkKeepRawTime.Parent" xml:space="preserve">
-    <value>tbOptions</value>
-  </data>
-  <data name="&gt;&gt;ucrChkKeepRawTime.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="ucrChkIncludeMetadata.Location" type="System.Drawing.Point, System.Drawing">
-    <value>11, 70</value>
-  </data>
-  <data name="ucrChkIncludeMetadata.Size" type="System.Drawing.Size, System.Drawing">
-    <value>162, 20</value>
-  </data>
-  <data name="ucrChkIncludeMetadata.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
-  </data>
-  <data name="&gt;&gt;ucrChkIncludeMetadata.Name" xml:space="preserve">
-    <value>ucrChkIncludeMetadata</value>
-  </data>
-  <data name="&gt;&gt;ucrChkIncludeMetadata.Type" xml:space="preserve">
-    <value>instat.ucrCheck, instat, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;ucrChkIncludeMetadata.Parent" xml:space="preserve">
-    <value>tbOptions</value>
-  </data>
-  <data name="&gt;&gt;ucrChkIncludeMetadata.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
   <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
   </metadata>
@@ -1376,9 +1316,6 @@
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
     <value>733, 468</value>
-  </data>
-  <data name="$this.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
   </data>
   <data name="$this.StartPosition" type="System.Windows.Forms.FormStartPosition, System.Windows.Forms">
     <value>CenterParent</value>

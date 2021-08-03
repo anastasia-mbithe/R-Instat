@@ -44,6 +44,8 @@ Public Class dlgClimaticBoxPlot
     Private clsFilterElementOperator As New ROperator
     Private clsFilterElementFunction As New RFunction
     Private clsAsFactorFunction As New RFunction
+    Private clsXScaleDateFunction As New RFunction
+    Private clsYScaleDateFunction As New RFunction
 
     Private strFacetWrap As String = "Facet Wrap"
     Private strFacetRow As String = "Facet Row"
@@ -58,7 +60,9 @@ Public Class dlgClimaticBoxPlot
 
     Private clsCoordPolarFunction As New RFunction
     Private clsCoordPolarStartOperator As New ROperator
-
+    Private clsScaleFillViridisFunction As New RFunction
+    Private clsScaleColourViridisFunction As New RFunction
+    Private clsAnnotateFunction As New RFunction
     Private Sub dlgClimaticBoxPlot_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         If bFirstLoad Then
             InitialiseDialog()
@@ -72,10 +76,9 @@ Public Class dlgClimaticBoxPlot
             AutoFill()
         End If
         bReset = False
+        SetOptionsButtonsText()
         autoTranslate(Me)
         TestOKEnabled()
-
-        SetOptionsButtonstext()
     End Sub
 
     Private Sub InitialiseDialog()
@@ -176,6 +179,8 @@ Public Class dlgClimaticBoxPlot
         clsTextElementFunc.SetPackageName("ggplot2")
         clsTextElementFunc.SetRCommand("element_text")
         clsTextElementFunc.AddParameter("angle", "90", iPosition:=0)
+        clsTextElementFunc.AddParameter("hjust", "1", iPosition:=1)
+        clsTextElementFunc.AddParameter("vjust", "0.5", iPosition:=2)
         ucrChkVerticalXTickMarkers.SetText("Vertical X Tick Markers")
         ucrChkVerticalXTickMarkers.SetParameter(clsThemeParam, bNewAddRemoveParameter:=True, bNewChangeParameterValue:=False)
 
@@ -219,7 +224,8 @@ Public Class dlgClimaticBoxPlot
         clsFacetOp.SetOperation("~")
         clsFacetOp.bForceIncludeOperation = True
         clsFacetOp.bBrackets = False
-        clsFacetFunction.AddParameter("facets", clsROperatorParameter:=clsFacetOp)
+        clsFacetFunction.AddParameter("facets", clsROperatorParameter:=clsFacetOp, iPosition:=0)
+        clsFacetFunction.AddParameter("drop", "FALSE", iPosition:=1)
 
         clsFilterElementOperator.SetOperation(">")
         clsFilterElementOperator.bBrackets = False
@@ -258,7 +264,7 @@ Public Class dlgClimaticBoxPlot
         clsRaesFunction.SetRCommand("aes")
         clsRaesFunction.AddParameter("x", Chr(34) & Chr(34))
 
-        clsAsFactorFunction.SetRCommand("as.factor")
+        clsAsFactorFunction.SetRCommand("make_factor")
 
         clsRgeomPlotFunction.SetPackageName("ggplot2")
         clsRgeomPlotFunction.SetRCommand("geom_boxplot")
@@ -275,10 +281,15 @@ Public Class dlgClimaticBoxPlot
         clsThemeFunction = GgplotDefaults.clsDefaultThemeFunction.Clone()
         dctThemeFunctions = New Dictionary(Of String, RFunction)(GgplotDefaults.dctThemeFunctions)
         clsLocalRaesFunction = GgplotDefaults.clsAesFunction.Clone()
+        clsXScaleDateFunction = GgplotDefaults.clsXScaleDateFunction.Clone()
+        clsYScaleDateFunction = GgplotDefaults.clsYScaleDateFunction.Clone()
+        clsScaleFillViridisFunction = GgplotDefaults.clsScaleFillViridisFunction
+        clsScaleColourViridisFunction = GgplotDefaults.clsScaleColorViridisFunction
+        clsAnnotateFunction = GgplotDefaults.clsAnnotateFunction
 
         clsBaseOperator.AddParameter("theme", clsRFunctionParameter:=clsThemeFunc, bIncludeArgumentName:=False)
 
-        clsXlabsFunction.AddParameter("label", Chr(34) & "" & Chr(34), bIncludeArgumentName:=False)
+        clsXlabsFunction.AddParameter("label", "NULL", bIncludeArgumentName:=False)
         clsBaseOperator.AddParameter("xlab", clsRFunctionParameter:=clsXlabsFunction, bIncludeArgumentName:=False)
 
         clsBaseOperator.SetAssignTo("last_graph", strTempDataframe:=ucrSelectorClimaticBoxPlot.ucrAvailableDataFrames.cboAvailableDataFrames.Text, strTempGraph:="last_graph")
@@ -321,7 +332,12 @@ Public Class dlgClimaticBoxPlot
 
     Private Sub cmdOptions_Click(sender As Object, e As EventArgs) Handles cmdOptions.Click
         sdgPlots.SetRCode(clsBaseOperator, clsNewCoordPolarFunction:=clsCoordPolarFunction, clsNewCoordPolarStartOperator:=clsCoordPolarStartOperator,
-     clsNewThemeFunction:=clsThemeFunction, dctNewThemeFunctions:=dctThemeFunctions, clsNewGlobalAesFunction:=clsRaesFunction, clsNewXScalecontinuousFunction:=clsXScaleContinuousFunction, clsNewYScalecontinuousFunction:=clsYScaleContinuousFunction, clsNewXLabsTitleFunction:=clsXlabsFunction, clsNewYLabTitleFunction:=clsYlabFunction, clsNewLabsFunction:=clsLabsFunction, clsNewFacetFunction:=clsFacetFunction, ucrNewBaseSelector:=ucrSelectorClimaticBoxPlot, bReset:=bResetSubdialog)
+                         clsNewThemeFunction:=clsThemeFunction, dctNewThemeFunctions:=dctThemeFunctions, clsNewGlobalAesFunction:=clsRaesFunction,
+                         clsNewXScalecontinuousFunction:=clsXScaleContinuousFunction, clsNewYScalecontinuousFunction:=clsYScaleContinuousFunction,
+                         clsNewXLabsTitleFunction:=clsXlabsFunction, clsNewScaleFillViridisFunction:=clsScaleFillViridisFunction,
+                         clsNewScaleColourViridisFunction:=clsScaleColourViridisFunction, clsNewYLabTitleFunction:=clsYlabFunction,
+                         clsNewLabsFunction:=clsLabsFunction, clsNewFacetFunction:=clsFacetFunction, clsNewXScaleDateFunction:=clsXScaleDateFunction,
+                         clsNewAnnotateFunction:=clsAnnotateFunction, clsNewYScaleDateFunction:=clsYScaleDateFunction, ucrNewBaseSelector:=ucrSelectorClimaticBoxPlot, bReset:=bResetSubdialog)
         'this is a temporary fix because we have facets done on the main dialog
         sdgPlots.tbpFacet.Enabled = False
         sdgPlots.ShowDialog()
@@ -350,10 +366,11 @@ Public Class dlgClimaticBoxPlot
         End If
         UpdateParameters()
         AddRemoveFacets()
-        SetOptionsButtonstext()
+        SetOptionsButtonsText()
+        autoTranslate(Me)
     End Sub
 
-    Private Sub SetOptionsButtonstext()
+    Private Sub SetOptionsButtonsText()
         If rdoBoxplot.Checked Then
             cmdBoxPlotOptions.Text = "Boxplot Options"
         ElseIf rdoJitter.Checked Then

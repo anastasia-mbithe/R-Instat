@@ -60,6 +60,9 @@ Public Class RLink
     ''' <summary>   The instat data book object. </summary> 
     Public strInstatDataObject As String = "data_book" 'TODO SJL 23/04/20 make private constant?
 
+    ''' <summary> The name of the graph data book used for storing graphs. </summary>
+    Private strGraphDataBook As String = ".graph_data_book"
+
     ''' <summary>   Name of the data book class. </summary>
     Public strDataBookClassName As String = "DataBook" 'TODO SJL 23/04/20 make private constant?
 
@@ -156,16 +159,16 @@ Public Class RLink
 
 
     ''' <summary>   The R version major required. </summary>
-    Private strRVersionMajorRequired As String = "3"
+    Private strRVersionMajorRequired As String = "4"
 
     ''' <summary>   The R version minor required. </summary>
-    Private strRVersionMinorRequired As String = "6"
+    Private strRVersionMinorRequired As String = "1"
 
     ''' <summary>   The R version required. </summary>
     Private strRVersionRequired As String = strRVersionMajorRequired & "." & strRVersionMinorRequired & ".0"
 
     ''' <summary>   The R bundled version. </summary>
-    Private strRBundledVersion As String = "3.6.2"
+    Private strRBundledVersion As String = "4.1.0"
 
 
     '''--------------------------------------------------------------------------------------------
@@ -1254,6 +1257,7 @@ Public Class RLink
             End Try
             Try
                 ' if script should run in a separate thread
+                ' Fixed thread stack size i.e maxStackSize = 25000000 (25MB) because this may returns an overflow exception when large datasets are used. For example when producing a declustered plot on extremes dialog using Ghana dataset.
                 If bSeparateThread Then
                     thrRScript = New Threading.Thread(Sub()
                                                           Try
@@ -1267,7 +1271,7 @@ Public Class RLink
                                                               strTempError = ex.Message
                                                               bReturn = False
                                                           End Try
-                                                      End Sub)
+                                                      End Sub, maxStackSize:=25000000)
                     thrRScript.IsBackground = True
                     thrDelay = New Threading.Thread(Sub()
                                                         Dim t As New Stopwatch
@@ -1385,6 +1389,7 @@ Public Class RLink
         Dim clsSetWd As New RFunction
         Dim clsSource As New RFunction
         Dim clsCreateIO As New ROperator
+        Dim clsDplyrOption As New RFunction
         Dim strScript As String = ""
 
         clsSetWd.SetRCommand("setwd")
@@ -1394,11 +1399,14 @@ Public Class RLink
         clsCreateIO.SetOperation("<-")
         clsCreateIO.AddParameter("left", strInstatDataObject, iPosition:=0)
         clsCreateIO.AddParameter("right", strDataBookClassName & "$new()", iPosition:=1)
+        clsDplyrOption.SetRCommand("options")
+        clsDplyrOption.AddParameter("dplyr.summarise.inform", "FALSE", iPosition:=0)
 
         strScript = ""
         strScript = strScript & clsSetWd.ToScript() & Environment.NewLine
         strScript = strScript & clsSource.ToScript() & Environment.NewLine
-        strScript = strScript & clsCreateIO.ToScript()
+        strScript = strScript & clsCreateIO.ToScript() & Environment.NewLine
+        strScript = strScript & clsDplyrOption.ToScript()
 
         Return strScript
     End Function
@@ -1909,7 +1917,7 @@ Public Class RLink
         Dim clsGetSurvNames As New RFunction
         Dim expSurvNames As SymbolicExpression
 
-        clsGetSurvNames.SetRCommand(strInstatDataObject & "$get_graph_names")
+        clsGetSurvNames.SetRCommand(strInstatDataObject & "$get_surv_names")
         If strDataFrameName <> "" Then
             clsGetSurvNames.AddParameter("data_name", Chr(34) & strDataFrameName & Chr(34))
         End If
@@ -1922,6 +1930,46 @@ Public Class RLink
         End If
         Return lstSurvNames
     End Function
+
+    '''--------------------------------------------------------------------------------------------
+    ''' <summary>   Gets the names of the <paramref name="strDataFrameName"/> data frame's keys. </summary>
+    '''
+    ''' <param name="strDataFrameName"> (Optional) The data frame name. </param>
+    '''
+    ''' <returns>   The names of the <paramref name="strDataFrameName"/> data frame's survs. </returns>
+    '''--------------------------------------------------------------------------------------------
+    Public Function GetKeyNames(Optional strDataFrameName As String = "") As List(Of String)
+        Return GetNames(strDataFrameName, "$get_key_names")
+    End Function
+
+    '''--------------------------------------------------------------------------------------------
+    ''' <summary>   Gets the names of the <paramref name="strDataFrameName"/> data frame's links. </summary>
+    '''
+    ''' <param name="strDataFrameName"> (Optional) The data frame name. </param>
+    '''
+    ''' <returns>   The names of the <paramref name="strDataFrameName"/> data frame's survs. </returns>
+    '''--------------------------------------------------------------------------------------------
+    Public Function GetLinkNames(Optional strDataFrameName As String = "") As List(Of String)
+        Return GetNames(strDataFrameName, "$get_link_names")
+    End Function
+
+    Private Function GetNames(strDataFrameName As String, strRCommand As String) As List(Of String)
+        Dim lstNames As New List(Of String)
+        Dim clsGetNames As New RFunction
+        Dim expNames As SymbolicExpression
+
+        clsGetNames.SetRCommand(strInstatDataObject & strRCommand)
+
+        If strDataFrameName <> "" Then
+            clsGetNames.AddParameter("data_name", Chr(34) & strDataFrameName & Chr(34))
+        End If
+        expNames = RunInternalScriptGetValue(clsGetNames.ToScript(), bSilent:=True)
+        If expNames IsNot Nothing AndAlso Not expNames.Type = Internals.SymbolicExpressionType.Null Then
+            lstNames = expNames.AsCharacter.ToArray.ToList
+        End If
+        Return lstNames
+    End Function
+
 
     '''--------------------------------------------------------------------------------------------
     ''' <summary>   Gets the data type of the <paramref name="strColumnName"/> column in the 
@@ -2258,7 +2306,8 @@ Public Class RLink
         Dim clsCreateIO As New ROperator
 
         clsRm.SetRCommand("rm")
-        clsRm.AddParameter("x", strInstatDataObject)
+        clsRm.AddParameter("0", strInstatDataObject, iPosition:=0, bIncludeArgumentName:=False)
+        clsRm.AddParameter("1", strGraphDataBook, iPosition:=1, bIncludeArgumentName:=False)
 
         clsCreateIO.SetOperation("<-")
         clsCreateIO.AddParameter("left", strInstatDataObject, iPosition:=0)
@@ -2277,11 +2326,10 @@ Public Class RLink
     '''--------------------------------------------------------------------------------------------
     Public Sub ViewLastGraph(Optional bAsPlotly As Boolean = False)
         Dim clsLastGraph As New RFunction
-        Dim clsInteractivePlot As New RFunction
-
         clsLastGraph.SetRCommand(strInstatDataObject & "$get_last_graph")
 
         If bAsPlotly Then
+            Dim clsInteractivePlot As New RFunction
             clsLastGraph.AddParameter("print_graph", "FALSE", iPosition:=0)
             clsInteractivePlot.SetPackageName("plotly")
             clsInteractivePlot.SetRCommand("ggplotly")
@@ -2289,7 +2337,13 @@ Public Class RLink
             'Need to set iCallType = 2 to obtain a graph in an interactive viewer.
             RunScript(clsInteractivePlot.ToScript(), iCallType:=2, strComment:="View last graph as Plotly", bSeparateThread:=False)
         Else
-            RunScript(clsLastGraph.ToScript(), strComment:="View last graph", bSeparateThread:=False)
+            Dim strGlobalGraphDisplayOption As String
+            'store the current set graph display option, to restore after display
+            strGlobalGraphDisplayOption = Me.strGraphDisplayOption
+            Me.strGraphDisplayOption = "view_R_viewer"
+            RunScript(clsLastGraph.ToScript(), iCallType:=3, strComment:="View last graph", bSeparateThread:=False)
+            'restore the graph display option
+            Me.strGraphDisplayOption = strGlobalGraphDisplayOption
         End If
     End Sub
 

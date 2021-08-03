@@ -50,6 +50,8 @@ Partial Class dlgMakeDate
         Me.lblDayofYear = New System.Windows.Forms.Label()
         Me.ucrReceiverDayTwo = New instat.ucrReceiverSingle()
         Me.grpSingleColumn = New System.Windows.Forms.GroupBox()
+        Me.grpFormats = New System.Windows.Forms.GroupBox()
+        Me.txtTextDateFormats = New System.Windows.Forms.RichTextBox()
         Me.lblUnits = New System.Windows.Forms.Label()
         Me.ucrDtpSpecifyOrigin = New instat.ucrDateTimePicker()
         Me.ucrInputUnits = New instat.ucrInputComboBox()
@@ -95,8 +97,6 @@ Partial Class dlgMakeDate
         Me.rdoThreeColumns = New System.Windows.Forms.RadioButton()
         Me.rdoTwoColumns = New System.Windows.Forms.RadioButton()
         Me.rdoSingleColumn = New System.Windows.Forms.RadioButton()
-        Me.grpFormats = New System.Windows.Forms.GroupBox()
-        Me.txtTextDateFormats = New System.Windows.Forms.RichTextBox()
         Me.cmdHelp = New System.Windows.Forms.Button()
         Me.ttMakeDate = New System.Windows.Forms.ToolTip(Me.components)
         Me.ucrPnlDate = New instat.UcrPanel()
@@ -105,9 +105,9 @@ Partial Class dlgMakeDate
         Me.ucrSelectorMakeDate = New instat.ucrSelectorByDataFrameAddRemove()
         Me.grpTwoColumns.SuspendLayout()
         Me.grpSingleColumn.SuspendLayout()
+        Me.grpFormats.SuspendLayout()
         Me.grpFormatField.SuspendLayout()
         Me.grpThreeColumns.SuspendLayout()
-        Me.grpFormats.SuspendLayout()
         Me.SuspendLayout()
         '
         'grpTwoColumns
@@ -148,6 +148,7 @@ Partial Class dlgMakeDate
         'ucrInputComboBoxMonthTwo
         '
         Me.ucrInputComboBoxMonthTwo.AddQuotesIfUnrecognised = True
+        Me.ucrInputComboBoxMonthTwo.GetSetSelectedIndex = -1
         Me.ucrInputComboBoxMonthTwo.IsReadOnly = False
         resources.ApplyResources(Me.ucrInputComboBoxMonthTwo, "ucrInputComboBoxMonthTwo")
         Me.ucrInputComboBoxMonthTwo.Name = "ucrInputComboBoxMonthTwo"
@@ -182,6 +183,7 @@ Partial Class dlgMakeDate
         '
         'grpSingleColumn
         '
+        Me.grpSingleColumn.Controls.Add(Me.grpFormats)
         Me.grpSingleColumn.Controls.Add(Me.lblUnits)
         Me.grpSingleColumn.Controls.Add(Me.ucrDtpSpecifyOrigin)
         Me.grpSingleColumn.Controls.Add(Me.ucrInputUnits)
@@ -197,6 +199,18 @@ Partial Class dlgMakeDate
         Me.grpSingleColumn.Name = "grpSingleColumn"
         Me.grpSingleColumn.TabStop = False
         '
+        'grpFormats
+        '
+        Me.grpFormats.Controls.Add(Me.txtTextDateFormats)
+        resources.ApplyResources(Me.grpFormats, "grpFormats")
+        Me.grpFormats.Name = "grpFormats"
+        Me.grpFormats.TabStop = False
+        '
+        'txtTextDateFormats
+        '
+        resources.ApplyResources(Me.txtTextDateFormats, "txtTextDateFormats")
+        Me.txtTextDateFormats.Name = "txtTextDateFormats"
+        '
         'lblUnits
         '
         resources.ApplyResources(Me.lblUnits, "lblUnits")
@@ -204,6 +218,8 @@ Partial Class dlgMakeDate
         '
         'ucrDtpSpecifyOrigin
         '
+        Me.ucrDtpSpecifyOrigin.DateValue = New Date(2021, 5, 19, 13, 56, 22, 794)
+        Me.ucrDtpSpecifyOrigin.Format = "dd MMM yyyy"
         resources.ApplyResources(Me.ucrDtpSpecifyOrigin, "ucrDtpSpecifyOrigin")
         Me.ucrDtpSpecifyOrigin.MaxDate = New Date(9998, 12, 31, 0, 0, 0, 0)
         Me.ucrDtpSpecifyOrigin.MinDate = New Date(1753, 2, 1, 0, 0, 0, 0)
@@ -212,6 +228,7 @@ Partial Class dlgMakeDate
         'ucrInputUnits
         '
         Me.ucrInputUnits.AddQuotesIfUnrecognised = True
+        Me.ucrInputUnits.GetSetSelectedIndex = -1
         Me.ucrInputUnits.IsReadOnly = False
         resources.ApplyResources(Me.ucrInputUnits, "ucrInputUnits")
         Me.ucrInputUnits.Name = "ucrInputUnits"
@@ -253,6 +270,7 @@ Partial Class dlgMakeDate
         'UcrInputComboBox1
         '
         Me.UcrInputComboBox1.AddQuotesIfUnrecognised = True
+        Me.UcrInputComboBox1.GetSetSelectedIndex = -1
         Me.UcrInputComboBox1.IsReadOnly = False
         resources.ApplyResources(Me.UcrInputComboBox1, "UcrInputComboBox1")
         Me.UcrInputComboBox1.Name = "UcrInputComboBox1"
@@ -260,6 +278,7 @@ Partial Class dlgMakeDate
         'UcrInputComboBox2
         '
         Me.UcrInputComboBox2.AddQuotesIfUnrecognised = True
+        Me.UcrInputComboBox2.GetSetSelectedIndex = -1
         Me.UcrInputComboBox2.IsReadOnly = False
         resources.ApplyResources(Me.UcrInputComboBox2, "UcrInputComboBox2")
         Me.UcrInputComboBox2.Name = "UcrInputComboBox2"
@@ -267,6 +286,7 @@ Partial Class dlgMakeDate
         'UcrInputComboBox3
         '
         Me.UcrInputComboBox3.AddQuotesIfUnrecognised = True
+        Me.UcrInputComboBox3.GetSetSelectedIndex = -1
         Me.UcrInputComboBox3.IsReadOnly = False
         resources.ApplyResources(Me.UcrInputComboBox3, "UcrInputComboBox3")
         Me.UcrInputComboBox3.Name = "UcrInputComboBox3"
@@ -274,6 +294,7 @@ Partial Class dlgMakeDate
         'UcrInputComboBox4
         '
         Me.UcrInputComboBox4.AddQuotesIfUnrecognised = True
+        Me.UcrInputComboBox4.GetSetSelectedIndex = -1
         Me.UcrInputComboBox4.IsReadOnly = False
         resources.ApplyResources(Me.UcrInputComboBox4, "UcrInputComboBox4")
         Me.UcrInputComboBox4.Name = "UcrInputComboBox4"
@@ -316,6 +337,7 @@ Partial Class dlgMakeDate
         'ucrInputFormat
         '
         Me.ucrInputFormat.AddQuotesIfUnrecognised = True
+        Me.ucrInputFormat.GetSetSelectedIndex = -1
         Me.ucrInputFormat.IsReadOnly = False
         resources.ApplyResources(Me.ucrInputFormat, "ucrInputFormat")
         Me.ucrInputFormat.Name = "ucrInputFormat"
@@ -323,6 +345,7 @@ Partial Class dlgMakeDate
         'ucrInputOrigin
         '
         Me.ucrInputOrigin.AddQuotesIfUnrecognised = True
+        Me.ucrInputOrigin.GetSetSelectedIndex = -1
         Me.ucrInputOrigin.IsReadOnly = False
         resources.ApplyResources(Me.ucrInputOrigin, "ucrInputOrigin")
         Me.ucrInputOrigin.Name = "ucrInputOrigin"
@@ -457,6 +480,7 @@ Partial Class dlgMakeDate
         'ucrInputMonthOption
         '
         Me.ucrInputMonthOption.AddQuotesIfUnrecognised = True
+        Me.ucrInputMonthOption.GetSetSelectedIndex = -1
         Me.ucrInputMonthOption.IsReadOnly = False
         resources.ApplyResources(Me.ucrInputMonthOption, "ucrInputMonthOption")
         Me.ucrInputMonthOption.Name = "ucrInputMonthOption"
@@ -464,6 +488,7 @@ Partial Class dlgMakeDate
         'ucrInputYearOption
         '
         Me.ucrInputYearOption.AddQuotesIfUnrecognised = True
+        Me.ucrInputYearOption.GetSetSelectedIndex = -1
         Me.ucrInputYearOption.IsReadOnly = False
         resources.ApplyResources(Me.ucrInputYearOption, "ucrInputYearOption")
         Me.ucrInputYearOption.Name = "ucrInputYearOption"
@@ -547,18 +572,6 @@ Partial Class dlgMakeDate
         Me.rdoSingleColumn.Name = "rdoSingleColumn"
         Me.rdoSingleColumn.UseVisualStyleBackColor = True
         '
-        'grpFormats
-        '
-        Me.grpFormats.Controls.Add(Me.txtTextDateFormats)
-        resources.ApplyResources(Me.grpFormats, "grpFormats")
-        Me.grpFormats.Name = "grpFormats"
-        Me.grpFormats.TabStop = False
-        '
-        'txtTextDateFormats
-        '
-        resources.ApplyResources(Me.txtTextDateFormats, "txtTextDateFormats")
-        Me.txtTextDateFormats.Name = "txtTextDateFormats"
-        '
         'cmdHelp
         '
         resources.ApplyResources(Me.cmdHelp, "cmdHelp")
@@ -592,7 +605,6 @@ Partial Class dlgMakeDate
         '
         resources.ApplyResources(Me, "$this")
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.Controls.Add(Me.grpFormats)
         Me.Controls.Add(Me.grpSingleColumn)
         Me.Controls.Add(Me.grpThreeColumns)
         Me.Controls.Add(Me.cmdHelp)
@@ -612,11 +624,11 @@ Partial Class dlgMakeDate
         Me.grpTwoColumns.PerformLayout()
         Me.grpSingleColumn.ResumeLayout(False)
         Me.grpSingleColumn.PerformLayout()
+        Me.grpFormats.ResumeLayout(False)
         Me.grpFormatField.ResumeLayout(False)
         Me.grpFormatField.PerformLayout()
         Me.grpThreeColumns.ResumeLayout(False)
         Me.grpThreeColumns.PerformLayout()
-        Me.grpFormats.ResumeLayout(False)
         Me.ResumeLayout(False)
 
     End Sub
@@ -665,8 +677,6 @@ Partial Class dlgMakeDate
     Friend WithEvents rdoTwoColumns As RadioButton
     Friend WithEvents rdoSingleColumn As RadioButton
     Friend WithEvents ucrPnlDate As UcrPanel
-    Friend WithEvents grpFormats As GroupBox
-    Friend WithEvents txtTextDateFormats As RichTextBox
     Friend WithEvents cmdHelp As Button
     Friend WithEvents ttMakeDate As ToolTip
     Friend WithEvents ucrDtpSpecifyOrigin As ucrDateTimePicker
@@ -684,4 +694,6 @@ Partial Class dlgMakeDate
     Friend WithEvents ucrPnlDayType As UcrPanel
     Friend WithEvents lblUnits As Label
     Friend WithEvents ucrInputUnits As ucrInputComboBox
+    Friend WithEvents grpFormats As GroupBox
+    Friend WithEvents txtTextDateFormats As RichTextBox
 End Class

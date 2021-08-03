@@ -76,6 +76,10 @@ Public Class ucrReceiver
     ' Currently only implemented for multiple receiver.
     Public bForceVariablesAsList As Boolean = False
 
+    'used by the selector to autoswitch from the current receiver
+    Public bAutoSwitchFromReceiver As Boolean = False
+
+
     Public Sub New()
         ' This call is required by the designer.
         InitializeComponent()
@@ -160,7 +164,6 @@ Public Class ucrReceiver
     End Sub
 
     Private Sub ucrReceiver_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        translateEach(Controls, Me)
         If bFirstLoad Then
             frmParent = ParentForm
             'Remove this line so that single/multiple code can run things on first load as well
@@ -361,6 +364,7 @@ Public Class ucrReceiver
 
     Protected Overridable Sub Selector_ResetAll() Handles ucrSelector.ResetReceivers
         Clear()
+        CheckAutoFill()
     End Sub
 
     Private Sub ucrSelector_DataFrameChanged() Handles ucrSelector.DataFrameChanged
@@ -520,7 +524,24 @@ Public Class ucrReceiver
 
     Public Sub SetClimaticType(strTemp As String)
         Dim dctTemp As New Dictionary(Of String, String())
-        dctTemp.Add("Climatic_Type", {Chr(34) & strTemp & Chr(34)})
+
+        ' "element" is a special case since it is a different metadata property.
+        If strTemp = "element" Then
+            dctTemp.Add("Is_Element", {"TRUE"})
+            SetIncludedAutoFillProperties(dctTemp)
+        Else
+            SetClimaticType({strTemp})
+        End If
+    End Sub
+
+    Public Sub SetClimaticType(enumTypes As IEnumerable(Of String))
+        Dim dctTemp As New Dictionary(Of String, String())
+        Dim arrTypes() As String = enumTypes.ToArray
+
+        For i As Integer = 0 To arrTypes.Count - 1
+            arrTypes(i) = Chr(34) & arrTypes(i) & Chr(34)
+        Next
+        dctTemp.Add("Climatic_Type", arrTypes)
         SetIncludedAutoFillProperties(dctTemp)
     End Sub
 
@@ -561,7 +582,18 @@ Public Class ucrReceiver
             Return ucrSelector
         End Get
         Set(ucrNewSelector As ucrSelector)
+            'remove the receiver from the former selector
+            If ucrSelector IsNot Nothing Then
+                ucrSelector.RemoveReceiver(Me)
+            End If
+
             ucrSelector = ucrNewSelector
+
+            'add the receiver to the new selector
+            If ucrSelector IsNot Nothing Then
+                ucrSelector.AddReceiver(Me)
+            End If
+
         End Set
     End Property
 
@@ -596,6 +628,10 @@ Public Class ucrReceiver
         strSelectorHeading = strNewHeading
     End Sub
 
+    Private Sub Selector_DataFrameChanged() Handles ucrSelector.DataFrameChanged
+        CheckAutoFill()
+    End Sub
+
     Public Overridable Sub CheckAutoFill()
         Dim clsGetItems As New RFunction
         Dim clsIncludeList As New RFunction
@@ -626,12 +662,25 @@ Public Class ucrReceiver
                 expItems = frmMain.clsRLink.RunInternalScriptGetValue(clsGetItems.ToScript(), bSilent:=True)
                 If expItems IsNot Nothing AndAlso Not expItems.Type = Internals.SymbolicExpressionType.Null Then
                     chrColumns = expItems.AsCharacter
-                    If chrColumns.Count = 1 Then
+                    ' ucrReceiverSingle only autofills if there is exactly one valid item.
+                    If TypeOf Me Is ucrReceiverSingle Then
+                        If chrColumns.Count = 1 Then
+                            For Each lviTempVariable As ListViewItem In Selector.lstAvailableVariable.Items
+                                If lviTempVariable.Text = chrColumns(0) Then
+                                    Add(lviTempVariable.Text, Selector.strCurrentDataFrame)
+                                    Exit For
+                                End If
+                            Next
+                        End If
+                        ' ucrReceiverMultipe autofills all valid items.
+                    ElseIf TypeOf Me Is ucrReceiverMultiple Then
                         For Each lviTempVariable As ListViewItem In Selector.lstAvailableVariable.Items
-                            If lviTempVariable.Text = chrColumns(0) Then
-                                Add(lviTempVariable.Text, Selector.strCurrentDataFrame)
-                                Exit For
-                            End If
+                            For Each chrCol As String In chrColumns
+                                If lviTempVariable.Text = chrCol Then
+                                    Add(lviTempVariable.Text, Selector.strCurrentDataFrame)
+                                    Exit For
+                                End If
+                            Next
                         Next
                     End If
                 End If

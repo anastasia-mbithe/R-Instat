@@ -147,7 +147,7 @@ Public Class dlgMakeDate
         ucrPnlDate.AddFunctionNamesCondition(rdoThreeColumns, frmMain.clsRLink.strInstatDataObject & "$make_date_yearmonthday")
 
         'ucrSave Date Column
-        ucrSaveDate.SetPrefix("Date")
+        ucrSaveDate.SetPrefix("date")
         ucrSaveDate.SetSaveTypeAsColumn()
         ucrSaveDate.SetDataFrameSelector(ucrSelectorMakeDate.ucrAvailableDataFrames)
         ucrSaveDate.SetLabelText("Save Date:")
@@ -405,7 +405,7 @@ Public Class dlgMakeDate
     End Sub
 
     Private Sub cmdHelp_Click(sender As Object, e As EventArgs) Handles cmdHelp.Click
-        frmMain.clsRLink.RunScript(clsHelp.ToScript, strComment:="Display Help page for Date-Time Conversion Functions", bSeparateThread:=False, bUpdateGrids:=False)
+        frmMain.clsRLink.RunScript(clsHelp.ToScript, iCallType:=2, strComment:="Display Help page for Date-Time Conversion Functions", bSeparateThread:=False, bUpdateGrids:=False)
     End Sub
 
     Public Sub SetCurrentColumn(strColumn As String, strDataFrame As String)

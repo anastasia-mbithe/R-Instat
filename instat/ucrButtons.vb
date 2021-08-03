@@ -195,17 +195,15 @@ Public Class ucrButtons
     End Sub
 
     Private Sub ucrButtons_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        frmMain.clsRecentItems.addToMenu(Me.Parent)
-        translateEach(Controls, Me)
+        If frmMain.clsRecentItems IsNot Nothing Then
+            frmMain.clsRecentItems.addToMenu(Me.Parent)
+        End If
         If bFirstLoad Then
             'TODO. Temp this could be done on the designer
             txtComment.Multiline = True
             AddButtonInCommentTextbox()
             SetDefaults()
             bFirstLoad = False
-            If frmMain.clsInstatOptions IsNot Nothing Then
-                strCurrLang = frmMain.clsInstatOptions.strLanguageCultureCode
-            End If
         End If
         If frmMain.clsInstatOptions IsNot Nothing Then
             If frmMain.clsInstatOptions.strLanguageCultureCode <> "en-GB" Then
@@ -215,6 +213,7 @@ Public Class ucrButtons
                 cmdHelp.Width = cmdOk.Width
                 cmdLanguage.Visible = False
             End If
+            strCurrLang = frmMain.clsInstatOptions.strLanguageCultureCode
         End If
 
     End Sub
@@ -267,12 +266,11 @@ Public Class ucrButtons
             strCurrLang = frmMain.clsInstatOptions.strLanguageCultureCode
         End If
 
-        Try
-            Dim CultureInfo As New Globalization.CultureInfo(strCurrLang)
-            autoTranslate(Me.ParentForm, CultureInfo)
-        Catch ex As Exception
-            autoTranslate(Me.ParentForm)
-        End Try
+        Dim strConfiguredLanguage As String = frmMain.clsInstatOptions.strLanguageCultureCode
+        frmMain.clsInstatOptions.strLanguageCultureCode = strCurrLang
+        autoTranslate(Me.ParentForm)
+        frmMain.clsInstatOptions.strLanguageCultureCode = strConfiguredLanguage
+
         If cmdLanguage.FlatStyle = FlatStyle.Popup Then
             cmdLanguage.FlatStyle = FlatStyle.Flat
         Else

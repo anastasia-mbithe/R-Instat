@@ -63,9 +63,9 @@ Partial Class dlgImportDataset
         Me.ucrInputEncodingCSV = New instat.ucrInputComboBox()
         Me.grpExcel = New System.Windows.Forms.GroupBox()
         Me.lblTo = New System.Windows.Forms.Label()
+        Me.ucrChkRange = New instat.ucrCheck()
         Me.lblFrom = New System.Windows.Forms.Label()
         Me.ucrInputTextTo = New instat.ucrInputTextBox()
-        Me.ucrChkRange = New instat.ucrCheck()
         Me.ucrInputTextFrom = New instat.ucrInputTextBox()
         Me.ucrNudMaxRowsExcel = New instat.ucrNud()
         Me.ucrChkColumnNamesExcel = New instat.ucrCheck()
@@ -103,10 +103,11 @@ Partial Class dlgImportDataset
         Me.clbSheets = New System.Windows.Forms.CheckedListBox()
         Me.lblSelectSheets = New System.Windows.Forms.Label()
         Me.lblImportingSheets = New System.Windows.Forms.Label()
+        Me.ucrChkMultipleFiles = New instat.ucrCheck()
+        Me.ucrSaveFile = New instat.ucrSave()
         Me.ucrChkSheetsCheckAll = New instat.ucrCheck()
         Me.ucrNudPreviewLines = New instat.ucrNud()
         Me.ucrPanelFixedWidthText = New instat.UcrPanel()
-        Me.ucrSaveFile = New instat.ucrSave()
         Me.ucrInputFilePath = New instat.ucrInputTextBox()
         Me.ucrBase = New instat.ucrButtons()
         Me.grpCSV.SuspendLayout()
@@ -250,6 +251,7 @@ Partial Class dlgImportDataset
         'ucrInputHeadersCSV
         '
         Me.ucrInputHeadersCSV.AddQuotesIfUnrecognised = True
+        Me.ucrInputHeadersCSV.GetSetSelectedIndex = -1
         Me.ucrInputHeadersCSV.IsReadOnly = False
         resources.ApplyResources(Me.ucrInputHeadersCSV, "ucrInputHeadersCSV")
         Me.ucrInputHeadersCSV.Name = "ucrInputHeadersCSV"
@@ -265,6 +267,7 @@ Partial Class dlgImportDataset
         'ucrInputDecimalCSV
         '
         Me.ucrInputDecimalCSV.AddQuotesIfUnrecognised = True
+        Me.ucrInputDecimalCSV.GetSetSelectedIndex = -1
         Me.ucrInputDecimalCSV.IsReadOnly = False
         resources.ApplyResources(Me.ucrInputDecimalCSV, "ucrInputDecimalCSV")
         Me.ucrInputDecimalCSV.Name = "ucrInputDecimalCSV"
@@ -272,6 +275,7 @@ Partial Class dlgImportDataset
         'ucrInputSeparatorCSV
         '
         Me.ucrInputSeparatorCSV.AddQuotesIfUnrecognised = True
+        Me.ucrInputSeparatorCSV.GetSetSelectedIndex = -1
         Me.ucrInputSeparatorCSV.IsReadOnly = False
         resources.ApplyResources(Me.ucrInputSeparatorCSV, "ucrInputSeparatorCSV")
         Me.ucrInputSeparatorCSV.Name = "ucrInputSeparatorCSV"
@@ -279,6 +283,7 @@ Partial Class dlgImportDataset
         'ucrInputEncodingCSV
         '
         Me.ucrInputEncodingCSV.AddQuotesIfUnrecognised = True
+        Me.ucrInputEncodingCSV.GetSetSelectedIndex = -1
         Me.ucrInputEncodingCSV.IsReadOnly = False
         resources.ApplyResources(Me.ucrInputEncodingCSV, "ucrInputEncodingCSV")
         Me.ucrInputEncodingCSV.Name = "ucrInputEncodingCSV"
@@ -309,6 +314,12 @@ Partial Class dlgImportDataset
         resources.ApplyResources(Me.lblTo, "lblTo")
         Me.lblTo.Name = "lblTo"
         '
+        'ucrChkRange
+        '
+        Me.ucrChkRange.Checked = False
+        resources.ApplyResources(Me.ucrChkRange, "ucrChkRange")
+        Me.ucrChkRange.Name = "ucrChkRange"
+        '
         'lblFrom
         '
         resources.ApplyResources(Me.lblFrom, "lblFrom")
@@ -321,12 +332,6 @@ Partial Class dlgImportDataset
         Me.ucrInputTextTo.IsReadOnly = False
         resources.ApplyResources(Me.ucrInputTextTo, "ucrInputTextTo")
         Me.ucrInputTextTo.Name = "ucrInputTextTo"
-        '
-        'ucrChkRange
-        '
-        Me.ucrChkRange.Checked = False
-        resources.ApplyResources(Me.ucrChkRange, "ucrChkRange")
-        Me.ucrChkRange.Name = "ucrChkRange"
         '
         'ucrInputTextFrom
         '
@@ -390,6 +395,7 @@ Partial Class dlgImportDataset
         'ucrInputNamedRegions
         '
         Me.ucrInputNamedRegions.AddQuotesIfUnrecognised = True
+        Me.ucrInputNamedRegions.GetSetSelectedIndex = -1
         Me.ucrInputNamedRegions.IsReadOnly = False
         resources.ApplyResources(Me.ucrInputNamedRegions, "ucrInputNamedRegions")
         Me.ucrInputNamedRegions.Name = "ucrInputNamedRegions"
@@ -591,6 +597,17 @@ Partial Class dlgImportDataset
         resources.ApplyResources(Me.lblImportingSheets, "lblImportingSheets")
         Me.lblImportingSheets.Name = "lblImportingSheets"
         '
+        'ucrChkMultipleFiles
+        '
+        resources.ApplyResources(Me.ucrChkMultipleFiles, "ucrChkMultipleFiles")
+        Me.ucrChkMultipleFiles.Checked = False
+        Me.ucrChkMultipleFiles.Name = "ucrChkMultipleFiles"
+        '
+        'ucrSaveFile
+        '
+        resources.ApplyResources(Me.ucrSaveFile, "ucrSaveFile")
+        Me.ucrSaveFile.Name = "ucrSaveFile"
+        '
         'ucrChkSheetsCheckAll
         '
         Me.ucrChkSheetsCheckAll.Checked = False
@@ -612,11 +629,6 @@ Partial Class dlgImportDataset
         resources.ApplyResources(Me.ucrPanelFixedWidthText, "ucrPanelFixedWidthText")
         Me.ucrPanelFixedWidthText.Name = "ucrPanelFixedWidthText"
         '
-        'ucrSaveFile
-        '
-        resources.ApplyResources(Me.ucrSaveFile, "ucrSaveFile")
-        Me.ucrSaveFile.Name = "ucrSaveFile"
-        '
         'ucrInputFilePath
         '
         Me.ucrInputFilePath.AddQuotesIfUnrecognised = True
@@ -634,6 +646,8 @@ Partial Class dlgImportDataset
         '
         resources.ApplyResources(Me, "$this")
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
+        Me.Controls.Add(Me.ucrChkMultipleFiles)
+        Me.Controls.Add(Me.ucrSaveFile)
         Me.Controls.Add(Me.lblImportingSheets)
         Me.Controls.Add(Me.ucrChkSheetsCheckAll)
         Me.Controls.Add(Me.lblSelectSheets)
@@ -648,7 +662,6 @@ Partial Class dlgImportDataset
         Me.Controls.Add(Me.ucrPanelFixedWidthText)
         Me.Controls.Add(Me.grpExcel)
         Me.Controls.Add(Me.grpRDS)
-        Me.Controls.Add(Me.ucrSaveFile)
         Me.Controls.Add(Me.lblNoPreview)
         Me.Controls.Add(Me.grpCSV)
         Me.Controls.Add(Me.ucrInputFilePath)
@@ -717,7 +730,6 @@ Partial Class dlgImportDataset
     Friend WithEvents ucrNudRowsToSkipCSV As ucrNud
     Friend WithEvents ucrChkStringsAsFactorsCSV As ucrCheck
     Friend WithEvents ucrChkMaxRowsExcel As ucrCheck
-    Friend WithEvents ucrSaveFile As ucrSave
     Friend WithEvents lblNAStringsCSV As Label
     Friend WithEvents ucrNudPreviewLines As ucrNud
     Friend WithEvents lblLinesToPreview As Label
@@ -747,4 +759,6 @@ Partial Class dlgImportDataset
     Friend WithEvents lblFrom As Label
     Friend WithEvents ucrInputTextTo As ucrInputTextBox
     Friend WithEvents ucrInputTextFrom As ucrInputTextBox
+    Friend WithEvents ucrSaveFile As ucrSave
+    Friend WithEvents ucrChkMultipleFiles As ucrCheck
 End Class
