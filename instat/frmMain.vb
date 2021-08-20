@@ -2408,4 +2408,12 @@ Public Class frmMain
         dlgPasteSpecial.ShowDialog()
     End Sub
 
+    Private Sub MyDialogToolStripMenuItem_Click(sender As Object, e As EventArgs)
+        dlgMyDialog.ShowDialog()
+
+    End Sub
+
+    Private Sub MyDialogToolStripMenuItem1_Click(sender As Object, e As EventArgs) Handles MyDialogToolStripMenuItem1.Click
+        dlgMyDialog.ShowDialog()
+    End Sub
 End Class
