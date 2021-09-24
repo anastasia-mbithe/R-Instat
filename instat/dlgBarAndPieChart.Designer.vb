@@ -38,6 +38,7 @@ Partial Class dlgBarAndPieChart
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
+        Me.components = New System.ComponentModel.Container()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(dlgBarAndPieChart))
         Me.lblByFactor = New System.Windows.Forms.Label()
         Me.cmdOptions = New System.Windows.Forms.Button()
@@ -55,10 +56,26 @@ Partial Class dlgBarAndPieChart
         Me.lblLabelSize = New System.Windows.Forms.Label()
         Me.lblLollipopSize = New System.Windows.Forms.Label()
         Me.lblLollipopColour = New System.Windows.Forms.Label()
+
+        Me.lblArea = New System.Windows.Forms.Label()
+        Me.lblFill = New System.Windows.Forms.Label()
+        Me.rdoTreeMap = New System.Windows.Forms.RadioButton()
+        Me.lblLabel = New System.Windows.Forms.Label()
+        Me.lblPlace = New System.Windows.Forms.Label()
+        Me.ttArea = New System.Windows.Forms.ToolTip(Me.components)
+        Me.ttFill = New System.Windows.Forms.ToolTip(Me.components)
+        Me.ucrInputPlace = New instat.ucrInputComboBox()
+        Me.ucrReceiverLabel = New instat.ucrReceiverSingle()
+        Me.ucrChkLayout = New instat.ucrCheck()
+        Me.ucrChkStart = New instat.ucrCheck()
+        Me.ucrInputStart = New instat.ucrInputComboBox()
+        Me.ucrInputLayout = New instat.ucrInputComboBox()
+
         Me.lblReorder = New System.Windows.Forms.Label()
         Me.lblReorderX = New System.Windows.Forms.Label()
         Me.ucrInputReorderX = New instat.ucrInputComboBox()
         Me.ucrInputAddReorder = New instat.ucrInputComboBox()
+
         Me.ucrInputLollipopColour = New instat.ucrInputComboBox()
         Me.ucrNudLollipopSize = New instat.ucrNud()
         Me.ucrChkLollipop = New instat.ucrCheck()
@@ -70,7 +87,6 @@ Partial Class dlgBarAndPieChart
         Me.ucrPnlPolar = New instat.UcrPanel()
         Me.ucrChkBacktoback = New instat.ucrCheck()
         Me.ucrReceiverX = New instat.ucrReceiverSingle()
-        Me.ucrVariablesAsFactorForBarChart = New instat.ucrVariablesAsFactor()
         Me.ucrInputBarChartPositions = New instat.ucrInputComboBox()
         Me.ucrSaveBar = New instat.ucrSave()
         Me.ucrChkFlipCoordinates = New instat.ucrCheck()
@@ -78,8 +94,14 @@ Partial Class dlgBarAndPieChart
         Me.ucrBarChartSelector = New instat.ucrSelectorByDataFrameAddRemove()
         Me.ucrBase = New instat.ucrButtons()
         Me.ucrPnlOptions = New instat.UcrPanel()
+
+        Me.ucrReceiverFill = New instat.ucrReceiverSingle()
+        Me.ucrReceiverArea = New instat.ucrReceiverSingle()
+        Me.ucrVariablesAsFactorForBarChart = New instat.ucrVariablesAsFactor()
+
         Me.lblReorderValue = New System.Windows.Forms.Label()
         Me.ucrInputReorderValue = New instat.ucrInputComboBox()
+
         Me.SuspendLayout()
         '
         'lblByFactor
@@ -189,6 +211,84 @@ Partial Class dlgBarAndPieChart
         resources.ApplyResources(Me.lblLollipopColour, "lblLollipopColour")
         Me.lblLollipopColour.Name = "lblLollipopColour"
         '
+
+        'lblArea
+        '
+        resources.ApplyResources(Me.lblArea, "lblArea")
+        Me.lblArea.Name = "lblArea"
+        '
+        'lblFill
+        '
+        resources.ApplyResources(Me.lblFill, "lblFill")
+        Me.lblFill.Name = "lblFill"
+        '
+        'rdoTreeMap
+        '
+        resources.ApplyResources(Me.rdoTreeMap, "rdoTreeMap")
+        Me.rdoTreeMap.BackColor = System.Drawing.SystemColors.Control
+        Me.rdoTreeMap.FlatAppearance.BorderColor = System.Drawing.SystemColors.ActiveCaption
+        Me.rdoTreeMap.FlatAppearance.BorderSize = 2
+        Me.rdoTreeMap.FlatAppearance.CheckedBackColor = System.Drawing.SystemColors.ActiveCaption
+        Me.rdoTreeMap.Name = "rdoTreeMap"
+        Me.rdoTreeMap.TabStop = True
+        Me.rdoTreeMap.Tag = "Value"
+        Me.rdoTreeMap.UseVisualStyleBackColor = False
+        '
+        'lblLabel
+        '
+        resources.ApplyResources(Me.lblLabel, "lblLabel")
+        Me.lblLabel.Name = "lblLabel"
+        '
+        'lblPlace
+        '
+        resources.ApplyResources(Me.lblPlace, "lblPlace")
+        Me.lblPlace.Name = "lblPlace"
+        '
+        'ucrInputPlace
+        '
+        Me.ucrInputPlace.AddQuotesIfUnrecognised = True
+        Me.ucrInputPlace.GetSetSelectedIndex = -1
+        Me.ucrInputPlace.IsReadOnly = False
+        resources.ApplyResources(Me.ucrInputPlace, "ucrInputPlace")
+        Me.ucrInputPlace.Name = "ucrInputPlace"
+        '
+        'ucrReceiverLabel
+        '
+        Me.ucrReceiverLabel.frmParent = Me
+        resources.ApplyResources(Me.ucrReceiverLabel, "ucrReceiverLabel")
+        Me.ucrReceiverLabel.Name = "ucrReceiverLabel"
+        Me.ucrReceiverLabel.Selector = Nothing
+        Me.ucrReceiverLabel.strNcFilePath = ""
+        Me.ucrReceiverLabel.ucrSelector = Nothing
+        '
+        'ucrChkLayout
+        '
+        Me.ucrChkLayout.Checked = False
+        resources.ApplyResources(Me.ucrChkLayout, "ucrChkLayout")
+        Me.ucrChkLayout.Name = "ucrChkLayout"
+        '
+        'ucrChkStart
+        '
+        Me.ucrChkStart.Checked = False
+        resources.ApplyResources(Me.ucrChkStart, "ucrChkStart")
+        Me.ucrChkStart.Name = "ucrChkStart"
+        '
+        'ucrInputStart
+        '
+        Me.ucrInputStart.AddQuotesIfUnrecognised = True
+        Me.ucrInputStart.GetSetSelectedIndex = -1
+        Me.ucrInputStart.IsReadOnly = False
+        resources.ApplyResources(Me.ucrInputStart, "ucrInputStart")
+        Me.ucrInputStart.Name = "ucrInputStart"
+        '
+        'ucrInputLayout
+        '
+        Me.ucrInputLayout.AddQuotesIfUnrecognised = True
+        Me.ucrInputLayout.GetSetSelectedIndex = -1
+        Me.ucrInputLayout.IsReadOnly = False
+        resources.ApplyResources(Me.ucrInputLayout, "ucrInputLayout")
+        Me.ucrInputLayout.Name = "ucrInputLayout"
+
         'lblReorder
         '
         resources.ApplyResources(Me.lblReorder, "lblReorder")
@@ -214,6 +314,7 @@ Partial Class dlgBarAndPieChart
         Me.ucrInputAddReorder.IsReadOnly = False
         resources.ApplyResources(Me.ucrInputAddReorder, "ucrInputAddReorder")
         Me.ucrInputAddReorder.Name = "ucrInputAddReorder"
+
         '
         'ucrInputLollipopColour
         '
@@ -295,16 +396,6 @@ Partial Class dlgBarAndPieChart
         Me.ucrReceiverX.strNcFilePath = ""
         Me.ucrReceiverX.ucrSelector = Nothing
         '
-        'ucrVariablesAsFactorForBarChart
-        '
-        Me.ucrVariablesAsFactorForBarChart.frmParent = Me
-        resources.ApplyResources(Me.ucrVariablesAsFactorForBarChart, "ucrVariablesAsFactorForBarChart")
-        Me.ucrVariablesAsFactorForBarChart.Name = "ucrVariablesAsFactorForBarChart"
-        Me.ucrVariablesAsFactorForBarChart.Selector = Nothing
-        Me.ucrVariablesAsFactorForBarChart.strNcFilePath = ""
-        Me.ucrVariablesAsFactorForBarChart.ucrSelector = Nothing
-        Me.ucrVariablesAsFactorForBarChart.ucrVariableSelector = Nothing
-        '
         'ucrInputBarChartPositions
         '
         Me.ucrInputBarChartPositions.AddQuotesIfUnrecognised = True
@@ -351,6 +442,35 @@ Partial Class dlgBarAndPieChart
         resources.ApplyResources(Me.ucrPnlOptions, "ucrPnlOptions")
         Me.ucrPnlOptions.Name = "ucrPnlOptions"
         '
+
+        'ucrReceiverFill
+        '
+        Me.ucrReceiverFill.frmParent = Me
+        resources.ApplyResources(Me.ucrReceiverFill, "ucrReceiverFill")
+        Me.ucrReceiverFill.Name = "ucrReceiverFill"
+        Me.ucrReceiverFill.Selector = Nothing
+        Me.ucrReceiverFill.strNcFilePath = ""
+        Me.ucrReceiverFill.ucrSelector = Nothing
+        '
+        'ucrReceiverArea
+        '
+        Me.ucrReceiverArea.frmParent = Me
+        resources.ApplyResources(Me.ucrReceiverArea, "ucrReceiverArea")
+        Me.ucrReceiverArea.Name = "ucrReceiverArea"
+        Me.ucrReceiverArea.Selector = Nothing
+        Me.ucrReceiverArea.strNcFilePath = ""
+        Me.ucrReceiverArea.ucrSelector = Nothing
+        '
+        'ucrVariablesAsFactorForBarChart
+        '
+        Me.ucrVariablesAsFactorForBarChart.frmParent = Me
+        resources.ApplyResources(Me.ucrVariablesAsFactorForBarChart, "ucrVariablesAsFactorForBarChart")
+        Me.ucrVariablesAsFactorForBarChart.Name = "ucrVariablesAsFactorForBarChart"
+        Me.ucrVariablesAsFactorForBarChart.Selector = Nothing
+        Me.ucrVariablesAsFactorForBarChart.strNcFilePath = ""
+        Me.ucrVariablesAsFactorForBarChart.ucrSelector = Nothing
+        Me.ucrVariablesAsFactorForBarChart.ucrVariableSelector = Nothing
+
         'lblReorderValue
         '
         resources.ApplyResources(Me.lblReorderValue, "lblReorderValue")
@@ -363,17 +483,30 @@ Partial Class dlgBarAndPieChart
         Me.ucrInputReorderValue.IsReadOnly = False
         resources.ApplyResources(Me.ucrInputReorderValue, "ucrInputReorderValue")
         Me.ucrInputReorderValue.Name = "ucrInputReorderValue"
+
         '
         'dlgBarAndPieChart
         '
         resources.ApplyResources(Me, "$this")
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
+
+        Me.Controls.Add(Me.lblPlace)
+        Me.Controls.Add(Me.ucrInputPlace)
+        Me.Controls.Add(Me.lblLabel)
+        Me.Controls.Add(Me.ucrReceiverLabel)
+        Me.Controls.Add(Me.ucrChkLayout)
+        Me.Controls.Add(Me.ucrChkStart)
+        Me.Controls.Add(Me.ucrInputStart)
+        Me.Controls.Add(Me.ucrInputLayout)
+        Me.Controls.Add(Me.rdoTreeMap)
+
         Me.Controls.Add(Me.ucrInputReorderValue)
         Me.Controls.Add(Me.lblReorderValue)
         Me.Controls.Add(Me.lblReorderX)
         Me.Controls.Add(Me.ucrInputReorderX)
         Me.Controls.Add(Me.lblReorder)
         Me.Controls.Add(Me.ucrInputAddReorder)
+
         Me.Controls.Add(Me.ucrInputLollipopColour)
         Me.Controls.Add(Me.lblLollipopColour)
         Me.Controls.Add(Me.ucrNudLollipopSize)
@@ -393,10 +526,8 @@ Partial Class dlgBarAndPieChart
         Me.Controls.Add(Me.ucrChkBacktoback)
         Me.Controls.Add(Me.lblXvariable)
         Me.Controls.Add(Me.ucrReceiverX)
-        Me.Controls.Add(Me.ucrVariablesAsFactorForBarChart)
         Me.Controls.Add(Me.rdoFrequency)
         Me.Controls.Add(Me.ucrInputBarChartPositions)
-        Me.Controls.Add(Me.cmdColumnChartOptions)
         Me.Controls.Add(Me.lblPosition)
         Me.Controls.Add(Me.ucrSaveBar)
         Me.Controls.Add(Me.ucrChkFlipCoordinates)
@@ -409,6 +540,12 @@ Partial Class dlgBarAndPieChart
         Me.Controls.Add(Me.cmdBarChartOptions)
         Me.Controls.Add(Me.cmdPieChartOptions)
         Me.Controls.Add(Me.ucrPnlOptions)
+        Me.Controls.Add(Me.lblFill)
+        Me.Controls.Add(Me.ucrReceiverFill)
+        Me.Controls.Add(Me.lblArea)
+        Me.Controls.Add(Me.ucrReceiverArea)
+        Me.Controls.Add(Me.ucrVariablesAsFactorForBarChart)
+        Me.Controls.Add(Me.cmdColumnChartOptions)
         Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow
         Me.MaximizeBox = False
         Me.MinimizeBox = False
@@ -454,10 +591,28 @@ Partial Class dlgBarAndPieChart
     Friend WithEvents ucrNudLollipopSize As ucrNud
     Friend WithEvents lblLollipopSize As Label
     Friend WithEvents ucrChkLollipop As ucrCheck
+
+    Friend WithEvents ucrReceiverArea As ucrReceiverSingle
+    Friend WithEvents lblArea As Label
+    Friend WithEvents lblFill As Label
+    Friend WithEvents ucrReceiverFill As ucrReceiverSingle
+    Friend WithEvents rdoTreeMap As RadioButton
+    Friend WithEvents ucrChkLayout As ucrCheck
+    Friend WithEvents ucrChkStart As ucrCheck
+    Friend WithEvents ucrInputStart As ucrInputComboBox
+    Friend WithEvents ucrInputLayout As ucrInputComboBox
+    Friend WithEvents lblLabel As Label
+    Friend WithEvents ucrReceiverLabel As ucrReceiverSingle
+    Friend WithEvents ucrInputPlace As ucrInputComboBox
+    Friend WithEvents lblPlace As Label
+    Friend WithEvents ttArea As ToolTip
+    Friend WithEvents ttFill As ToolTip
+
     Friend WithEvents ucrInputAddReorder As ucrInputComboBox
     Friend WithEvents lblReorder As Label
     Friend WithEvents lblReorderX As Label
     Friend WithEvents ucrInputReorderX As ucrInputComboBox
     Friend WithEvents ucrInputReorderValue As ucrInputComboBox
     Friend WithEvents lblReorderValue As Label
+
 End Class
