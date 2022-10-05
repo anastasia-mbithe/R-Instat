@@ -217,15 +217,15 @@ Public Class ucrCalculator
         ttCalculator.SetToolTip(cmdFactorial, "factorial n!, as big integer. For example, factorialZ(6)= 720")
         ttCalculator.SetToolTip(cmdChoosez, "computes binomial coefficient choose(n,k) as a big integer. For example, chooseZ(20,2)=190")
         ttCalculator.SetToolTip(cmdNextPrime, "gives the next prime number. For example, nextprime(14)= 17")
-        ttCalculator.SetToolTip(cmdFactorize, "computes the prime factorizations. For example, prime_factors(20)= (2,5,2,1), Factorize(8)= 2:3 for (2,2,2)")
+        ttCalculator.SetToolTip(cmdFactorize, "computes the prime factorizations. For example, prime_factors(20)= (2,5,2,1), prime_factors(8)= 2:3 for (2,2,2)")
         ttCalculator.SetToolTip(cmdIsPrime, "checks if the number is prime and returns 0 or 2, 0= False, 2= True. For example, is.prime(10) returns 0")
         ttCalculator.SetToolTip(cmdFibonacci, "generates Fibonacci numbers. For example, Fibonacci(8)=21")
         ttCalculator.SetToolTip(cmdDivisors, "returns the divisors of x. For example, Divisors(21)= c(1,3,7)")
         ttCalculator.SetToolTip(cmdRankPercent, "returns the percentile that the number correspods to. For example, PercentRank(c(1,2,5,11,15)) = 0.2,0.4,0.6,0.8,1.0")
         ttCalculator.SetToolTip(cmdDigitSum, "calculates digit sum of x. For example, DigitSum(12344)= 14")
-        ttCalculator.SetToolTip(cmdBinary, "converts an integer into a binary number. For example, as.integer(intToBin(c(2,5,7,8)))= 10,101,111,1000")
-        ttCalculator.SetToolTip(cmdAsOctmode, "converts an integer into a octal number. For example, as.octmode(intToOct(c(2,5,12,17)))= 02,05,14,21")
-        ttCalculator.SetToolTip(cmdAsHexmode, "converts an integer into a hexadecimal number. For example, as.hexmode(intToHex(c(2,7,10,15)))= 2,7,a,f")
+        ttCalculator.SetToolTip(cmdBinary, "converts an integer into a binary number. For example, intToBin(c(2,5,7,8))= 10,101,111,1000")
+        ttCalculator.SetToolTip(cmdOctal, "converts an integer into a octal number. For example, as.octmode(intToOct(c(2,5,12,17)))= 02,05,14,21")
+        ttCalculator.SetToolTip(cmdHex, "converts an integer into a hexadecimal number. For example, as.hexmode(intToHex(c(2,7,10,15)))= 2,7,a,f")
         ttCalculator.SetToolTip(cmdNthPrime, "gives the n-th prime. For example nth_prime(1000)= 7919")
         ttCalculator.SetToolTip(cmdGeneratePrimes, "generates the first n prime numbers equal to the number of rows in the data")
         ttCalculator.SetToolTip(cmdGCD, "Greatest common divisor, for example gcd(18,42) = 6")
@@ -3054,19 +3054,19 @@ Public Class ucrCalculator
         End If
     End Sub
 
-    Private Sub cmdAsOctmode_Click(sender As Object, e As EventArgs) Handles cmdAsOctmode.Click
+    Private Sub cmdAsOctmode_Click(sender As Object, e As EventArgs) Handles cmdOctal.Click
         If chkShowParameters.Checked Then
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("as.octmode(R.utils::intToOct(x = ))", 2)
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("R.utils::intToOct(x = )", 1)
         Else
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("as.octmode(R.utils::intToOct())", 2)
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("R.utils::intToOct()", 1)
         End If
     End Sub
 
-    Private Sub cmdAsHexmode_Click(sender As Object, e As EventArgs) Handles cmdAsHexmode.Click
+    Private Sub cmdAsHexmode_Click(sender As Object, e As EventArgs) Handles cmdHex.Click
         If chkShowParameters.Checked Then
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("as.hexmode(R.utils::intToHex(x = ))", 2)
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("R.utils::intToHex(x = )", 1)
         Else
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("as.hexmode(R.utils::intToHex())", 2)
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("R.utils::intToHex()", 1)
         End If
     End Sub
 
@@ -3225,5 +3225,53 @@ Public Class ucrCalculator
         clsRepFunction.AddParameter("len", clsRFunctionParameter:=clsDataFunction, iPosition:=1)
 
         ucrReceiverForCalculation.AddToReceiverAtCursorPosition(clsRepFunction.ToScript, 0)
+    End Sub
+
+    Private Sub GmpToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles GmpToolStripMenuItem.Click
+        CalculationsOptions()
+        If ucrInputCalOptions.GetText = "Integer" Then
+            strPackageName = "gmp"
+        End If
+        OpenHelpPage()
+    End Sub
+
+    Private Sub UtilsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles UtilsToolStripMenuItem.Click
+        CalculationsOptions()
+        If ucrInputCalOptions.GetText = "Integer" Then
+            strPackageName = "utils"
+        End If
+        OpenHelpPage()
+    End Sub
+
+    Private Sub ZseqToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ZseqToolStripMenuItem.Click
+        CalculationsOptions()
+        If ucrInputCalOptions.GetText = "Integer" Then
+            strPackageName = "Zseq"
+        End If
+        OpenHelpPage()
+    End Sub
+
+    Private Sub cmdOctmode_Click(sender As Object, e As EventArgs) Handles cmdOctmode.Click
+        If chkShowParameters.Checked Then
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("as.octmode(x= )", 1)
+        Else
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("as.octmode()", 1)
+        End If
+    End Sub
+
+    Private Sub cmdHexmode_Click(sender As Object, e As EventArgs) Handles cmdHexmode.Click
+        If chkShowParameters.Checked Then
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("as.hexmode(x = )", 1)
+        Else
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("as.hexmode()", 1)
+        End If
+    End Sub
+
+    Private Sub cmdRoman_Click(sender As Object, e As EventArgs) Handles cmdRoman.Click
+        If chkShowParameters.Checked Then
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("utils::as.roman(x = )", 1)
+        Else
+            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("utils::as.roman()", 1)
+        End If
     End Sub
 End Class
