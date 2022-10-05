@@ -589,7 +589,7 @@ Public Class ucrCalculator
                 grpSymbols.Visible = False
                 grpHydroGOF.Visible = False
                 grpInteger.Visible = True
-                Me.Size = New Size(iBasicWidth * 1.38, iBaseHeight)
+                Me.Size = New Size(iBasicWidth * 1.6, iBaseHeight)
             Case "Basic"
                 grpSummary.Visible = False
                 grpMaths.Visible = False
@@ -3164,7 +3164,7 @@ Public Class ucrCalculator
         End If
     End Sub
 
-    Private Sub CalculatorFunctions(strRCommand As String)
+    Private Sub PrimeFunctions(strRCommand As String)
         Dim clsPrimesFunction As New RFunction
 
         clsPrimesFunction.SetPackageName("primes")
@@ -3184,23 +3184,23 @@ Public Class ucrCalculator
 
 
     Private Sub cmdTwin_Click(sender As Object, e As EventArgs) Handles cmdTwin.Click
-        CalculatorFunctions("twin_primes")
+        PrimeFunctions("twin_primes")
     End Sub
 
     Private Sub cmdCousin_Click(sender As Object, e As EventArgs) Handles cmdCousin.Click
-        CalculatorFunctions("cousin_primes")
+        PrimeFunctions("cousin_primes")
     End Sub
 
     Private Sub cmdSexy_Click(sender As Object, e As EventArgs) Handles cmdSexy.Click
-        CalculatorFunctions("sexy_primes")
+        PrimeFunctions("sexy_primes")
     End Sub
 
     Private Sub cmdThird_Click(sender As Object, e As EventArgs) Handles cmdThird.Click
-        CalculatorFunctions("third_cousin_primes")
+        PrimeFunctions("third_cousin_primes")
     End Sub
 
     Private Sub cmdTriplets_Click(sender As Object, e As EventArgs) Handles cmdTriplets.Click
-        CalculatorFunctions("sexy_prime_triplets")
+        PrimeFunctions("sexy_prime_triplets")
     End Sub
 
     Private Sub cmdKTuple_Click(sender As Object, e As EventArgs) Handles cmdKTuple.Click
@@ -3273,5 +3273,22 @@ Public Class ucrCalculator
         Else
             ucrReceiverForCalculation.AddToReceiverAtCursorPosition("utils::as.roman()", 1)
         End If
+    End Sub
+
+    Private Sub ZseqFunctions(strRCommand As String)
+        Dim clsSequenceFunction As New RFunction
+
+        clsDataFunction.SetRCommand("nrow")
+        clsDataFunction.AddParameter("x", ucrSelectorForCalculations.ucrAvailableDataFrames.cboAvailableDataFrames.SelectedItem, iPosition:=0)
+
+        clsSequenceFunction.SetPackageName("Zseq")
+        clsSequenceFunction.SetRCommand(strRCommand)
+        clsSequenceFunction.AddParameter("n", clsRFunctionParameter:=clsDataFunction, iPosition:=0)
+        clsSequenceFunction.AddParameter("gmp", "FALSE", iPosition:=1)
+
+        ucrReceiverForCalculation.AddToReceiverAtCursorPosition(clsSequenceFunction.ToScript, 0)
+    End Sub
+    Private Sub cmdPalindrome_Click(sender As Object, e As EventArgs) Handles cmdPalindrome.Click
+        ZseqFunctions("Palindromic")
     End Sub
 End Class
