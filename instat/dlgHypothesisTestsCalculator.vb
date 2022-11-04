@@ -52,7 +52,7 @@ Public Class dlgHypothesisTestsCalculator
         ucrSaveResult.SetAssignToIfUncheckedValue("Last_Test")
         ucrSaveResult.SetDataFrameSelector(ucrSelectorColumn.ucrAvailableDataFrames)
 
-        ucrInputComboRPackage.SetItems({"Stats1", "Stats2", "Agricolae", "Verification", "Coin", "Trend"})
+        ucrInputComboRPackage.SetItems({"Stats1", "Stats2", "Agricolae", "Verification", "Coin", "Trend", "statsr"})
         ucrInputComboRPackage.SetDropDownStyleAsNonEditable()
         'Tooltips for conf & and Alt Buttons
         ttHypothesisTests.SetToolTip(cmdConf, "The confidence level can be changed for some tests to 0.9 or 0.99 etc")
@@ -268,6 +268,25 @@ Public Class dlgHypothesisTestsCalculator
             ucrReceiverForTestColumn.AddToReceiverAtCursorPosition("wilcox.test(x = , y = NULL, alternative = c(""two.sided"", ""less"", ""greater""), mu = 0, paired = FALSE, exact = NULL, correct = TRUE, conf.int = FALSE, conf.level = 0.95)", 151)
         Else
             ucrReceiverForTestColumn.AddToReceiverAtCursorPosition("wilcox.test( )", 1)
+        End If
+    End Sub
+
+    Private Sub cmdbayesinference_Click(sender As Object, e As EventArgs) Handles cmdbayesinference.Click
+        clear()
+        If ucrChkIncludeArguments.Checked Then
+            ucrReceiverForTestColumn.AddToReceiverAtCursorPosition("statsr::bayes_inference(y= ,x = NULL,data=" & ucrSelectorColumn.ucrAvailableDataFrames.cboAvailableDataFrames.Text & " ,type = c(""ci"", ""ht""),statistic = c(""mean"", ""proportion""),method = c(""theoretical"", ""simulation""),success = NULL,cred_level = 0.95,alternative = ""twosided"", prior_family = ""JZS"",mu_0 = 0,rscale = 1,nsim = 10000,show_plot = FALSE)", 246)
+        Else
+            ucrReceiverForTestColumn.AddToReceiverAtCursorPosition("statsr::bayes_inference()", 1)
+        End If
+        SaveResults()
+    End Sub
+
+    Private Sub cmdinference_Click(sender As Object, e As EventArgs) Handles cmdinference.Click
+        clear()
+        If ucrChkIncludeArguments.Checked Then
+            ucrReceiverForTestColumn.AddToReceiverAtCursorPosition("statsr::inference(y= , x = NULL,data=" & ucrSelectorColumn.ucrAvailableDataFrames.cboAvailableDataFrames.Text & " ,type = c(""ci"", ""ht""),statistic = c(""mean"", ""median"", ""proportion""),success = NULL,method = c(""theoretical"", ""simulation""),null = 0,alternative =""twosided"",sig_level = 0.05,conf_level = 0.95,boot_method = c(""perc"", ""se""),show_eda_plot = FALSE,show_inf_plot = FALSE)", 282)
+        Else
+            ucrReceiverForTestColumn.AddToReceiverAtCursorPosition("statsr::inference()", 1)
         End If
     End Sub
 
@@ -595,6 +614,7 @@ Public Class dlgHypothesisTestsCalculator
                 grpVerification.Visible = False
                 grpCoin.Visible = False
                 grpTrend.Visible = False
+                grpBayesianPlus.Visible = False
             Case "Stats2"
                 strPackageName = "stats"
                 grpAgricolae.Visible = False
@@ -603,6 +623,7 @@ Public Class dlgHypothesisTestsCalculator
                 grpVerification.Visible = False
                 grpCoin.Visible = False
                 grpTrend.Visible = False
+                grpBayesianPlus.Visible = False
             Case "Agricolae"
                 strPackageName = "agricolae"
                 grpStats1.Visible = False
@@ -611,6 +632,7 @@ Public Class dlgHypothesisTestsCalculator
                 grpVerification.Visible = False
                 grpCoin.Visible = False
                 grpTrend.Visible = False
+                grpBayesianPlus.Visible = False
             Case "Verification"
                 strPackageName = "verification"
                 grpStats1.Visible = False
@@ -619,6 +641,7 @@ Public Class dlgHypothesisTestsCalculator
                 grpVerification.Visible = True
                 grpCoin.Visible = False
                 grpTrend.Visible = False
+                grpBayesianPlus.Visible = False
             Case "Coin"
                 strPackageName = "coin"
                 grpStats1.Visible = False
@@ -626,6 +649,7 @@ Public Class dlgHypothesisTestsCalculator
                 grpAgricolae.Visible = False
                 grpVerification.Visible = False
                 grpCoin.Visible = True
+                grpBayesianPlus.Visible = False
                 grpTrend.Visible = False
             Case "Trend"
                 strPackageName = "trend"
@@ -634,8 +658,16 @@ Public Class dlgHypothesisTestsCalculator
                 grpAgricolae.Visible = False
                 grpVerification.Visible = False
                 grpCoin.Visible = False
+                grpBayesianPlus.Visible = False
                 grpTrend.Visible = True
-
+            Case "statsr"
+                grpStats1.Visible = False
+                grpStats2.Visible = False
+                grpAgricolae.Visible = False
+                grpVerification.Visible = False
+                grpCoin.Visible = False
+                grpTrend.Visible = False
+                grpBayesianPlus.Visible = True
         End Select
     End Sub
 
@@ -1037,5 +1069,19 @@ Public Class dlgHypothesisTestsCalculator
 
     Private Sub cmdZero_Click(sender As Object, e As EventArgs) Handles cmdZero.Click
         ucrReceiverForTestColumn.AddToReceiverAtCursorPosition("I()", 1)
+    End Sub
+
+    Private Sub ucrSaveResult_ControlValueChanged(ucrChangedControl As ucrCore) Handles ucrSaveResult.ControlValueChanged
+        SaveResults()
+    End Sub
+
+    Private Sub SaveResults()
+        If ucrInputComboRPackage.GetText = "statsr" Then
+            ucrBase.clsRsyntax.RemoveAssignTo()
+        Else
+            ucrBase.clsRsyntax.SetAssignTo("Last_Test", strTempModel:="Last_Test", strTempDataframe:=ucrSelectorColumn.ucrAvailableDataFrames.cboAvailableDataFrames.SelectedItem)
+
+        End If
+
     End Sub
 End Class
