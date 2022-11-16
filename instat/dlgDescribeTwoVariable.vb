@@ -25,10 +25,12 @@ Public Class dlgDescribeTwoVariable
            clsGroupByFunction, clsDummyFunction, clsMmtableFunction, clsHeaderTopLeftFunction,
            clsHeaderLeftTopFunction, clsHeaderLeftTopFuncion, clsCombineFrequencyParametersFunction,
            clsSummaryMapFunction, clsCombineMultipleColumnsFunction, clsCombineFactorsFunction,
-           clsMmtableMapFunction, clsHeaderTopLeftSummaryVariableFunction,
-           clsCombineFrequencyFactorParameterFunction, clsSelectFunction, clsRenameCombineFunction As New RFunction
+           clsMmtableMapFunction, clsHeaderTopLeftSummaryVariableFunction, clsFrequencyTables2Function,
+           clsCombineFrequencyFactorParameterFunction, clsSelectFunction, clsRenameCombineFunction,
+           clsSelect2Function, clsSummaryMap2Function As New RFunction
     Private clsGroupByPipeOperator, clsMmtablePlusOperator, clsMapFrequencyPipeOperator,
-             clsMmtableTildeOperator, clsDataSelectTildeOperator, clsEmptyOperator, clsSecondEmptyOperator As New ROperator
+             clsMmtableTildeOperator, clsDataSelectTildeOperator, clsEmptyOperator, clsSecondEmptyOperator,
+             clsDataTildeOperator, clsMapFrequency2PipeOperator As New ROperator
     Private lstFrequencyParameters As New List(Of String)({"percentage_type", "margin_name",
                                                           "perc_total_factors", "perc_decimal",
                                                           "signif_fig", "include_margins"})
@@ -171,6 +173,11 @@ Public Class dlgDescribeTwoVariable
         clsMmtablePlusOperator = New ROperator
         clsEmptyOperator = New ROperator
         clsSecondEmptyOperator = New ROperator
+        clsFrequencyTables2Function = New RFunction
+        clsSelect2Function = New RFunction
+        clsDataTildeOperator = New ROperator
+        clsSummaryMap2Function = New RFunction
+        clsMapFrequency2PipeOperator = New ROperator
 
         ucrSelectorDescribeTwoVar.Reset()
         ucrReceiverFirstVars.SetMeAsReceiver()
@@ -299,6 +306,30 @@ Public Class dlgDescribeTwoVariable
 
         clsRAnovaFunction.SetRCommand(frmMain.clsRLink.strInstatDataObject & "$anova_tables")
 
+        clsFrequencyTables2Function.SetRCommand(frmMain.clsRLink.strInstatDataObject & "$summary_table")
+        clsFrequencyTables2Function.AddParameter("data_name", Chr(34) & ucrSelectorDescribeTwoVar.ucrAvailableDataFrames.cboAvailableDataFrames.Text & Chr(34), iPosition:=0)
+        clsFrequencyTables2Function.AddParameter("columns_to_summarise", ".x", iPosition:=1)
+        clsFrequencyTables2Function.AddParameter("summaries", Chr(34) & "summary_count" & Chr(34), iPosition:=3)
+
+        clsSelect2Function.SetPackageName("dplyr")
+        clsSelect2Function.SetRCommand("select")
+        clsSelect2Function.AddParameter(".data", clsRFunctionParameter:=clsFrequencyTables2Function, iPosition:=0)
+
+        clsDataTildeOperator.SetOperation("~")
+        clsDataTildeOperator.AddParameter("empty_parameter", "", iPosition:=0)
+        clsDataTildeOperator.AddParameter("select_function", clsRFunctionParameter:=clsSelect2Function, iPosition:=1)
+
+        clsSummaryMap2Function.SetPackageName("purrr")
+        clsSummaryMap2Function.SetRCommand("map")
+        clsSummaryMap2Function.AddParameter(".x", clsRFunctionParameter:=clsCombineMultipleColumnsFunction, iPosition:=0)
+        clsSummaryMap2Function.AddParameter(".f", clsROperatorParameter:=clsDataTildeOperator, iPosition:=1)
+
+        clsMapFrequency2PipeOperator.SetOperation("%>%")
+        clsMapFrequency2PipeOperator.AddParameter("map_summary_table", clsRFunctionParameter:=clsSummaryMap2Function, iPosition:=1)
+        clsMapFrequency2PipeOperator.AddParameter("map_mmtable", clsRFunctionParameter:=clsMmtableMapFunction, iPosition:=2)
+        clsMapFrequency2PipeOperator.AddParameter("data", clsRFunctionParameter:=ucrSelectorDescribeTwoVar.ucrAvailableDataFrames.clsCurrDataFrame, iPosition:=0)
+        clsMapFrequency2PipeOperator.SetAssignTo("list_of_tables ")
+
         ucrBase.clsRsyntax.SetBaseROperator(clsGroupByPipeOperator)
         bResetSubdialog = True
     End Sub
@@ -307,6 +338,7 @@ Public Class dlgDescribeTwoVariable
         ucrReceiverSecondVar.AddAdditionalCodeParameterPair(clsRAnovaFunction, New RParameter("y_col_name", 2), iAdditionalPairNo:=1)
         ucrReceiverSecondVar.AddAdditionalCodeParameterPair(clsRCorrelationFunction, New RParameter("y_col_name", 2), iAdditionalPairNo:=2)
         ucrReceiverSecondVar.AddAdditionalCodeParameterPair(clsCombineFrequencyFactorParameterFunction, New RParameter("factor_one", 0, bNewIncludeArgumentName:=False), iAdditionalPairNo:=3)
+        ucrReceiverSecondVar.AddAdditionalCodeParameterPair(clsFrequencyTables2Function, New RParameter("factors", 2), iAdditionalPairNo:=4)
 
         ucrReceiverFirstVars.AddAdditionalCodeParameterPair(clsRAnovaFunction, New RParameter("x_col_names", 1), iAdditionalPairNo:=1)
         ucrReceiverFirstVars.AddAdditionalCodeParameterPair(clsRCorrelationFunction, New RParameter("x_col_names", 1), iAdditionalPairNo:=2)
@@ -426,7 +458,7 @@ Public Class dlgDescribeTwoVariable
                 grpOptions.Visible = True
                 cmdSummaries.Visible = True
                 ucrChkOmitMissing.Visible = True
-                ucrBase.clsRsyntax.SetBaseRFunction(clsRCustomSummaryFunction)
+                ucrBase.clsRsyntax.SetBaseROperator(clsMapFrequency2PipeOperator)
                 ucrReceiverFirstVars.SetParameterIsString()
                 lblSummaryName.Text = "Numerical summaries"
                 lblSummaryName.ForeColor = SystemColors.Highlight
