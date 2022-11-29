@@ -309,7 +309,7 @@ Public Class ucrCalculator
         ttCalculator.SetToolTip(cmduniform, "Random sample from the uniform distribution between 0 & 1. Use say runif(n,5,10) to change the range")
         ttCalculator.SetToolTip(cmdRan_normal, "Random sample from the standard normal distribution. Use, say rnorm(n,100,15) to change the mean and sd")
         ttCalculator.SetToolTip(cmduni_integer, "Random integers between 1 and 5. Use say sample.int(3,n,TRUE,prob=c(6,3,1)) to sample 1 to 3 with defined probabilities.")
-        ttCalculator.SetToolTip(cmdbernouli, "Random Bernoulli (0 or 1) sample. Use say rbinom(n,1,1/6) for a random sample of a given dice value.")
+        ttCalculator.SetToolTip(cmdbernoulli, "Random Bernoulli (0 or 1) sample. Use say rbinom(n,1,1/6) for a random sample of a given dice value.")
         ttCalculator.SetToolTip(cmdbinomial, "Random binomial sample with values between 0 and 3. Use say rbinom(n,5,prob=0.1) for other distributions")
         ttCalculator.SetToolTip(cmdpoisson, "Random Poisson sample with mean 1. Change the mean as required.")
         ttCalculator.SetToolTip(cmdnbinomial, "Random geometric sample as given, i.e. number of failures before size=1 success. Change value of size (must remain positive) for other negative binomials.")
@@ -4571,80 +4571,133 @@ Public Class ucrCalculator
 
         clsUniformFunction.SetRCommand("runif")
         clsUniformFunction.AddParameter("n", clsRFunctionParameter:=clsDataFunction, iPosition:=0)
+        clsUniformFunction.AddParameter("min", "0", iPosition:=1)
+        clsUniformFunction.AddParameter("max", "1", iPosition:=2)
 
         ucrReceiverForCalculation.AddToReceiverAtCursorPosition(clsUniformFunction.ToScript, 0)
     End Sub
 
     Private Sub cmdpoisson_Click(sender As Object, e As EventArgs) Handles cmdpoisson.Click
-        If chkShowParameters.Checked Then
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition(" rpois(n = , lamda = 1)", 1)
-        Else
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("rpois( , lamda = 1)", 1)
-        End If
+        Dim clsPoissonFunction As New RFunction
+
+        clsDataFunction.SetRCommand("nrow")
+        clsDataFunction.AddParameter("x", ucrSelectorForCalculations.ucrAvailableDataFrames.cboAvailableDataFrames.SelectedItem, iPosition:=0)
+
+        clsPoissonFunction.SetRCommand("rpois")
+        clsPoissonFunction.AddParameter("n", clsRFunctionParameter:=clsDataFunction, iPosition:=0)
+        clsPoissonFunction.AddParameter("lamda", "1", iPosition:=1)
+
+        ucrReceiverForCalculation.AddToReceiverAtCursorPosition(clsPoissonFunction.ToScript, 0)
     End Sub
 
     Private Sub cmdRan_normal_Click(sender As Object, e As EventArgs) Handles cmdRan_normal.Click
-        If chkShowParameters.Checked Then
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("  rnorm(n = )", 1)
-        Else
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition(" rnorm()", 1)
-        End If
+        Dim clsNormalFunction As New RFunction
+
+        clsDataFunction.SetRCommand("nrow")
+        clsDataFunction.AddParameter("x", ucrSelectorForCalculations.ucrAvailableDataFrames.cboAvailableDataFrames.SelectedItem, iPosition:=0)
+
+        clsNormalFunction.SetRCommand("rnorm")
+        clsNormalFunction.AddParameter("n", clsRFunctionParameter:=clsDataFunction, iPosition:=0)
+        clsNormalFunction.AddParameter("mean", "0", iPosition:=1)
+        clsNormalFunction.AddParameter("sd", "1", iPosition:=2)
+
+        ucrReceiverForCalculation.AddToReceiverAtCursorPosition(clsNormalFunction.ToScript, 0)
     End Sub
 
     Private Sub cmduni_integer_Click(sender As Object, e As EventArgs) Handles cmduni_integer.Click
-        If chkShowParameters.Checked Then
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("sample.int(n = , size = 5, replace = TRUE)", 1)
-        Else
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition(" sample.int( ,5,replace = TRUE)", 1)
-        End If
+        Dim clsUnitegerFunction As New RFunction
+
+        clsDataFunction.SetRCommand("nrow")
+        clsDataFunction.AddParameter("x", ucrSelectorForCalculations.ucrAvailableDataFrames.cboAvailableDataFrames.SelectedItem, iPosition:=0)
+
+        clsUnitegerFunction.SetRCommand("sample.int")
+        clsUnitegerFunction.AddParameter("n", clsRFunctionParameter:=clsDataFunction, iPosition:=0)
+        clsUnitegerFunction.AddParameter("size", "5", iPosition:=1)
+        clsUnitegerFunction.AddParameter("replace", "TRUE", iPosition:=2)
+
+        ucrReceiverForCalculation.AddToReceiverAtCursorPosition(clsUnitegerFunction.ToScript, 0)
     End Sub
 
-    Private Sub cmdbernouli_Click(sender As Object, e As EventArgs) Handles cmdbernouli.Click
-        If chkShowParameters.Checked Then
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("rbinom(n = ,size = 1,prob = 0.5)", 1)
-        Else
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("rbinom( ,1,prob=0.5)", 1)
-        End If
+    Private Sub cmdbernoulli_Click(sender As Object, e As EventArgs) Handles cmdbernoulli.Click
+        Dim clsBernoulliFunction As New RFunction
+
+        clsDataFunction.SetRCommand("nrow")
+        clsDataFunction.AddParameter("x", ucrSelectorForCalculations.ucrAvailableDataFrames.cboAvailableDataFrames.SelectedItem, iPosition:=0)
+
+        clsBernoulliFunction.SetRCommand("rbinom")
+        clsBernoulliFunction.AddParameter("n", clsRFunctionParameter:=clsDataFunction, iPosition:=0)
+        clsBernoulliFunction.AddParameter("size", "1", iPosition:=1)
+        clsBernoulliFunction.AddParameter("prob", "0.5", iPosition:=2)
+
+        ucrReceiverForCalculation.AddToReceiverAtCursorPosition(clsBernoulliFunction.ToScript, 0)
     End Sub
 
     Private Sub cmdbinomial_Click(sender As Object, e As EventArgs) Handles cmdbinomial.Click
-        If chkShowParameters.Checked Then
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("rbinom(n = ,size = 3,prob = 0.5) ", 1)
-        Else
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("rbinom( ,3,prob = 0.5) ", 1)
-        End If
+        Dim clsBinomialFunction As New RFunction
+
+        clsDataFunction.SetRCommand("nrow")
+        clsDataFunction.AddParameter("x", ucrSelectorForCalculations.ucrAvailableDataFrames.cboAvailableDataFrames.SelectedItem, iPosition:=0)
+
+        clsBinomialFunction.SetRCommand("rbinom")
+        clsBinomialFunction.AddParameter("n", clsRFunctionParameter:=clsDataFunction, iPosition:=0)
+        clsBinomialFunction.AddParameter("size", "3", iPosition:=1)
+        clsBinomialFunction.AddParameter("prob", "0.5", iPosition:=2)
+
+        ucrReceiverForCalculation.AddToReceiverAtCursorPosition(clsBinomialFunction.ToScript, 0)
     End Sub
 
     Private Sub cmdnbinomial_Click(sender As Object, e As EventArgs) Handles cmdnbinomial.Click
-        If chkShowParameters.Checked Then
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("rnbinom(n = ,size = 1,prob = 0.5)", 1)
-        Else
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("rnbinom( ,size = 1,prob = 0.5)", 1)
-        End If
+        Dim clsNbinomialFunction As New RFunction
+
+        clsDataFunction.SetRCommand("nrow")
+        clsDataFunction.AddParameter("x", ucrSelectorForCalculations.ucrAvailableDataFrames.cboAvailableDataFrames.SelectedItem, iPosition:=0)
+
+        clsNbinomialFunction.SetRCommand("rnbinom")
+        clsNbinomialFunction.AddParameter("n", clsRFunctionParameter:=clsDataFunction, iPosition:=0)
+        clsNbinomialFunction.AddParameter("size", "1", iPosition:=1)
+        clsNbinomialFunction.AddParameter("prob", "0.5", iPosition:=2)
+
+        ucrReceiverForCalculation.AddToReceiverAtCursorPosition(clsNbinomialFunction.ToScript, 0)
     End Sub
 
     Private Sub cmdRan_gamma_Click(sender As Object, e As EventArgs) Handles cmdRan_gamma.Click
-        If chkShowParameters.Checked Then
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("rgamma(n = ,shape = 1,scale = 2) ", 1)
-        Else
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("rgamma( ,shape = 1,scale = 2) ", 1)
-        End If
+        Dim clsGammaFunction As New RFunction
+
+        clsDataFunction.SetRCommand("nrow")
+        clsDataFunction.AddParameter("x", ucrSelectorForCalculations.ucrAvailableDataFrames.cboAvailableDataFrames.SelectedItem, iPosition:=0)
+
+        clsGammaFunction.SetRCommand("rgamma")
+        clsGammaFunction.AddParameter("n", clsRFunctionParameter:=clsDataFunction, iPosition:=0)
+        clsGammaFunction.AddParameter("shape", "1", iPosition:=1)
+        clsGammaFunction.AddParameter("scale", "2", iPosition:=2)
+
+        ucrReceiverForCalculation.AddToReceiverAtCursorPosition(clsGammaFunction.ToScript, 0)
     End Sub
 
     Private Sub cmdRan_beta_Click(sender As Object, e As EventArgs) Handles cmdRan_beta.Click
-        If chkShowParameters.Checked Then
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("rbeta(n = ,shape1 = 1, shape2 = 1)", 1)
-        Else
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("rbeta( ,shape1 = 1,shape2 = 1)", 1)
-        End If
+        Dim clsBetaFunction As New RFunction
+
+        clsDataFunction.SetRCommand("nrow")
+        clsDataFunction.AddParameter("x", ucrSelectorForCalculations.ucrAvailableDataFrames.cboAvailableDataFrames.SelectedItem, iPosition:=0)
+
+        clsBetaFunction.SetRCommand("rbeta")
+        clsBetaFunction.AddParameter("n", clsRFunctionParameter:=clsDataFunction, iPosition:=0)
+        clsBetaFunction.AddParameter("shape1", "1", iPosition:=1)
+        clsBetaFunction.AddParameter("shape2", "1", iPosition:=2)
+
+        ucrReceiverForCalculation.AddToReceiverAtCursorPosition(clsBetaFunction.ToScript, 0)
     End Sub
 
     Private Sub cmdRan_sample_Click(sender As Object, e As EventArgs) Handles cmdRan_sample.Click
-        If chkShowParameters.Checked Then
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("sample(size = ,n = ,replace=TRUE)", 1)
-        Else
-            ucrReceiverForCalculation.AddToReceiverAtCursorPosition("sample(size =  , ,replace=TRUE)", 1)
-        End If
-    End Sub
+        Dim clsSampleFunction As New RFunction
 
+        clsDataFunction.SetRCommand("nrow")
+        clsDataFunction.AddParameter("x", ucrSelectorForCalculations.ucrAvailableDataFrames.cboAvailableDataFrames.SelectedItem, iPosition:=0)
+
+        clsSampleFunction.SetRCommand("sample")
+        clsSampleFunction.AddParameter("n", clsRFunctionParameter:=clsDataFunction, iPosition:=0)
+        clsSampleFunction.AddParameter("replace", "TRUE", iPosition:=1)
+
+        ucrReceiverForCalculation.AddToReceiverAtCursorPosition(clsSampleFunction.ToScript, 0)
+    End Sub
 End Class
